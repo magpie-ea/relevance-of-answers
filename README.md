@@ -1,12 +1,12 @@
-# test
+# Relevance of Answers
 
-This is a sample experiment using _magpie.
+Experiment to test different notions of (information-theoretic) relevance against human judgements of an answer's helpfulness.
 
-First, set up the project with `npm install`
+This experiment uses [_magpie](https://magpie-manual.netlify.app/).
 
-To run the project locally, run `npm run serve`
+Clone the repository and set up the project with `npm install`
 
-To build the project for deployment (e.g. to Netlify), run `npm run build`
+To run the experiment locally, run `npm run serve`
 
-For more information, see our [getting started guide](https://magpie-ea.github.io/magpie-site/experiments/introduction.html).
+
 
