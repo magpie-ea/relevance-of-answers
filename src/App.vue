@@ -20,8 +20,23 @@
     <!--   uses magpie's forced choice trial input. -->
     <!-- </InstructionScreen> -->
 
-  <template v-for="(item, i) in relevanceItems2">
-    <Screen>
+    <!-- <Screen> -->
+
+    <!--   <Slide> -->
+    <!--     <p>Fries or soup?</p> -->
+    <!--     <SliderInput -->
+    <!--     initial="50" -->
+    <!--         left="Fries" -->
+    <!--         right="Soup" -->
+    <!--         :response.sync= "$magpie.measurements.lunch" /> -->
+    <!--     Lunch: {{$magpie.measurements.lunch}}% Soup -->
+    <!--     <button @click="$magpie.saveAndNextScreen();">Submit</button> -->
+    <!--   </Slide> -->
+
+    <!-- </Screen> -->
+
+  <template >
+    <Screen v-for="(item, i) in relevanceItems2">
 
       <Slide>
         <span style="color:gray">Context:</span> {{item.Context}}
@@ -45,34 +60,34 @@
         <SliderInput
           :left="item.SliderLabelLeft"
           :right="item.SliderLabelRight"
-          disabled="likelihoodClicked"
-          :initial="0"
-          :response.sync= "$magpie.measurements.likelihood" />
-        <span v-if="$magpie.measurements.likelihood >=0"
+          :response.sync= "$magpie.measurements.sliderResponse"
+          :initial="0"/>
+        <span v-if="$magpie.measurements.sliderResponse >=0"
               style="color:gray">
-          Your selection means that there is a {{$magpie.measurements.likelihood}}% chance that {{item.CriticalProposition}}.
+          Your selection means that there is a
+          {{$magpie.measurements.sliderResponse}}% chance that {{item.CriticalProposition}}.
         </span>
-        <button v-if="($magpie.measurements.likelihood >=0 && likelihoodClicked =='false' && ! item.TrialType.includes('relevance'))"
-                @click="toggleLikelihoodFlag()">
+        <button v-if="($magpie.measurements.sliderResponse >=0 && sliderResponseClicked =='false' && ! item.TrialType.includes('relevance'))"
+                @click="toggleSliderResponseFlag()">
           Continue
         </button>
         <br>
-        <strong v-if="likelihoodClicked=='true' && ! item.TrialType.includes('relevance')">
+        <strong v-if="sliderResponseClicked=='true' && ! item.TrialType.includes('relevance')">
           How confident are you that the probability
-          is {{$magpie.measurements.likelihood}}%? and {{item.TrialType.includes('relevance')}}
+          is {{$magpie.measurements.sliderResponse}}%? and {{item.TrialType.includes('relevance')}}
         </strong>
         <RatingInput
-          v-if="likelihoodClicked=='true' && ! item.TrialType.includes('relevance')"
+          v-if="sliderResponseClicked=='true' && ! item.TrialType.includes('relevance')"
           left="highly unsure"
           right="highly confident"
           :response.sync= "$magpie.measurements.confidence"
           />
         <button v-if="$magpie.measurements.confidence >=0 && ! item.TrialType.includes('relevance')"
-                @click="toggleLikelihoodFlag();addTrialInfo(item,i);$magpie.saveAndNextScreen();">
+                @click="toggleSliderResponseFlag();addTrialInfo(item,i);$magpie.saveAndNextScreen();">
           Submit
         </button>
-        <button v-if="$magpie.measurements.likelihood >=0 && item.TrialType.includes('relevance')"
-                  @click="toggleLikelihoodFlag();addTrialInfo(item,i);$magpie.saveAndNextScreen();">
+        <button v-if="$magpie.measurements.sliderResponse >=0 && item.TrialType.includes('relevance')"
+                  @click="toggleSliderResponseFlag();addTrialInfo(item,i);$magpie.saveAndNextScreen();">
             Submit
           </button>
 
@@ -93,7 +108,7 @@
         <!--   </p> -->
         <!--   <br> -->
         <!--   <br> -->
-        <!--   <strong>How confident are in your previous rating that the probability is {{$magpie.measurements.likelihood}}%?</strong> -->
+        <!--   <strong>How confident are in your previous rating that the probability is {{$magpie.measurements.sliderResponse}}%?</strong> -->
 
         <!--   <SliderInput -->
         <!--     left="highly unsure" -->
@@ -127,7 +142,7 @@
 import relevanceItems2 from '../trials/relevance_stimuli_medium.csv';
 import _ from 'lodash';
 
-var likelihoodClicked = 'false';
+var sliderResponseClicked = 'false';
 
 export default {
     name: 'App',
@@ -140,7 +155,7 @@ export default {
             // sliderRating,
             // relevanceItems: relevanceItems,
             relevanceItems2: relevanceItems2,
-            likelihoodClicked: likelihoodClicked,
+            sliderResponseClicked: sliderResponseClicked,
 
             // Expose lodash.range to template above
             range: _.range
@@ -149,16 +164,16 @@ export default {
     methods: {
         showmf: function() {console.log("I can do this!")},
         addTrialInfo: function(item, i) {
-            $magpie.measurements.trial_nr = i;
+            $magpie.measurements.trial_nr = i+1;
             $magpie.measurements.Trialtype = item.TrialType;
             $magpie.measurements.Contexttype = item.AnswerType;
             $magpie.measurements.StimID = item.StimID;
         },
-        toggleLikelihoodFlag: function() {
-            if (this.likelihoodClicked == 'true') {
-                this.likelihoodClicked = 'false'
+        toggleSliderResponseFlag: function() {
+            if (this.sliderResponseClicked == 'true') {
+                this.sliderResponseClicked = 'false'
             } else {
-                this.likelihoodClicked = 'true'
+                this.sliderResponseClicked = 'true'
             }
         }
     }
