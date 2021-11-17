@@ -8,5 +8,7 @@ Clone the repository and set up the project with `npm install`
 
 To run the experiment locally, run `npm run serve`
 
+A live version is here: [https://magpie3-relevance-answers.netlify.app/](https://magpie3-relevance-answers.netlify.app/)
+
 
 
