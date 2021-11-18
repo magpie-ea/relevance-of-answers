@@ -20,8 +20,8 @@
         <!--   uses magpie's forced choice trial input. -->
         <!-- </InstructionScreen> -->
 
-    <template >
-        <Screen v-for="(item, i) in relevanceItems">
+    <template v-for="(item, i) in relevanceItems">
+        <Screen :key="i">
 
             <Slide>
                 <Record :data="{
