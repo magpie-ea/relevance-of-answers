@@ -53,6 +53,7 @@
                     :left="item.SliderLabelLeft"
                     :right="item.SliderLabelRight"
                     :response.sync= "$magpie.measurements.sliderResponse"
+                    :disabled="sliderResponseClicked=='true'"
                     :initial="0"/>
                 <span v-if="$magpie.measurements.sliderResponse >=0
                             && ! item.TrialType.includes('relevance')"
