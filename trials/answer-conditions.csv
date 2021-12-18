@@ -1,0 +1,11 @@
+AnswerCertainty,AnswerPolarity
+high_certainty,negative
+high_certainty,negative
+high_certainty,positive
+high_certainty,positive
+low_certainty,negative
+low_certainty,negative
+low_certainty,positive
+low_certainty,positive
+non_answer,"N/A"
+non_answer,"N/A"
