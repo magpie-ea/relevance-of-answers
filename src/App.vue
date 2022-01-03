@@ -136,7 +136,7 @@
         <span v-if="$magpie.measurements.sliderResponse >=0
                     && ! item.TaskType.includes('relevance')"
               style="color:gray">
-          Your selection means that there is a
+          Your selection means that there is about a
           {{$magpie.measurements.sliderResponse}}% chance that
           {{item.CriticalProposition}}.
         </span>
@@ -156,7 +156,7 @@
         <br>
         <strong v-if="sliderResponseClicked=='true'
                       && ! item.TaskType.includes('relevance')">
-          How confident are you that the probability is
+          How confident are you that the probability is about
           {{$magpie.measurements.sliderResponse}}%?
         </strong>
         <RatingInput
