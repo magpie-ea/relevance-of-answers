@@ -130,6 +130,7 @@
 // Load data from csv files as javascript arrays with objects
 import relevanceItems from '../trials/relevance_stimuli.csv';
 import fillerItems from '../trials/relevance_fillers.csv';
+import practiceItems from '../trials/practice_stimuli.csv';
 import answerConditionsRaw from '../trials/answer-conditions.csv';
 import _ from 'lodash';
 
@@ -150,7 +151,8 @@ var mainItems = _.flatMap(_.range(0,10), function(i) {
 // console.log(mainItems)
 
 var items =
-    _.slice(mainItems,0,3).concat(
+    _.slice(practiceItems,0,4).concat(
+        _.slice(mainItems,0,3),
         fillerItems[0],
         fillerItems[1],
         _.slice(mainItems,6,12),
