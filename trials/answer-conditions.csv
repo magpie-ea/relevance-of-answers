@@ -1,4 +1,8 @@
 AnswerCertainty,AnswerPolarity
+exhaustive,negative
+exhaustive,negative
+exhaustive,positive
+exhaustive,positive
 high_certainty,negative
 high_certainty,negative
 high_certainty,positive
