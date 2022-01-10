@@ -1,24 +1,32 @@
+<style>
+  /* Callout box - fixed position at the bottom of the page */
+.callout {
+  position: fixed;
+  top: 5px;
+  left: -10px;
+  margin-left: 20px;
+  max-width: 220px;
+  text-align: left;
+  padding: 15px;
+  background-color: #ebebeb;
+  color: black;
+  font-size: 15px;
+}
+
+
+</style>
 <template>
 <Experiment title="_magpie demo">
 
   <InstructionScreen :title="'Welcome!'">
-    This is a sample introduction screen.
-    <br />
-    <br />
-    This screen welcomes the participant and gives general information about
-    the experiment.
-    <br />
-    <br />
-    This mock up experiment is a showcase of the functionality of magpie.
+    This experiment presents 16 scenarios with a short dialogue.<br><br>
+    Your job is to read the scenarios, and share some of your judgments about it.<br><br>
+    The experiment will take about 15 minutes to complete.<br><br>
   </InstructionScreen>
 
-  <!-- <InstructionScreen :title="'General Instructions'"> -->
-    <!--   This is a sample instructions view. -->
-    <!--   <br /> -->
-    <!--   <br /> -->
-    <!--   First you will go through two practice trials. The practice trial view -->
-    <!--   uses magpie's forced choice trial input. -->
-    <!-- </InstructionScreen> -->
+  <InstructionScreen :title="'The next scenario will be a practice trial.'">
+    <br><br><br><br><br>
+  </InstructionScreen>
 
   <template v-for="(item, i) in items">
     <Screen :key="i">
@@ -44,6 +52,59 @@
                  '~': 'next'
                  }"
           @update:response="$magpie.saveAndNextScreen();" />
+
+        <div v-if="(item.TrialType=='practice') && (sliderResponseClicked=='false') && (item.TaskType.includes('prior'))">
+          <div class="callout">
+            <p>
+              Read the scenario, and then judge the probability of the statement.<br><br>
+              Drag the slider to give your best guess at the probability.<br><br>
+              Don't worry if there's not enough information to choose an exact probability.<br><br>
+              The Eiffel Tower seems like a pretty "unmissable" site, so a probability between 50% and 90% seems reasonable.
+            </p>
+          </div>
+        </div>
+
+        <div v-if="(item.TrialType=='practice') && (sliderResponseClicked=='true') && (item.TaskType.includes('prior'))">
+          <div class="callout">
+            <p>
+              It's hard to judge. The context makes me think Aaron might make an exception for the Eiffel Tower,
+              but I can't tell if he'll think it's really worth it.<br><br>
+              So select a button on the lower end, like 1, 2, or 3.
+            </p>
+          </div>
+        </div>
+
+        <div v-if="(item.TrialType=='practice') && (sliderResponseClicked=='false') && (item.TaskType.includes('posterior'))">
+          <div class="callout">
+            <p>
+              Read Jess's response, and judge the probability of the statement with this new information.<br><br>
+              It's pretty unlikely that Aaron will go to the Eiffel Tower if he hates it.<br><br>
+              So select a low probability, like 5%.
+            </p>
+          </div>
+        </div>
+
+        <div v-if="(item.TrialType=='practice') && (sliderResponseClicked=='true') && (item.TaskType.includes('posterior'))">
+          <div class="callout">
+            <p>
+              Now tell us how confident you are about the probability.<br><br>
+              I'm much more confident than before that the probability is very low, but other probabilities like 2% or 10% are reasonable.<br><br>
+              So select a button that's higher than before, like 4, 5, or 6.
+            </p>
+          </div>
+        </div>
+
+        <div v-if="(item.TrialType=='practice') && (item.TaskType.includes('relevance'))">
+          <div class="callout">
+            <p>
+              Now tell us how <strong>helpful</strong> Jess's answer was in response to your question.<br><br>
+              Jess's answer doesn't directly answer the question, but it's still pretty helpful.<br><br>
+              So select a high value, like 70, 80, or 90.
+            </p>
+          </div>
+        </div>
+
+
         <span style="color:gray">Context:</span> {{item.Context}}
         <br>
         <br>
@@ -75,7 +136,7 @@
         <span v-if="$magpie.measurements.sliderResponse >=0
                     && ! item.TaskType.includes('relevance')"
               style="color:gray">
-          Your selection means that there is a
+          Your selection means that there is about a
           {{$magpie.measurements.sliderResponse}}% chance that
           {{item.CriticalProposition}}.
         </span>
@@ -95,7 +156,7 @@
         <br>
         <strong v-if="sliderResponseClicked=='true'
                       && ! item.TaskType.includes('relevance')">
-          How confident are you that the probability is
+          How confident are you that the probability is about
           {{$magpie.measurements.sliderResponse}}%?
         </strong>
         <RatingInput
@@ -130,6 +191,7 @@
 // Load data from csv files as javascript arrays with objects
 import relevanceItems from '../trials/relevance_stimuli.csv';
 import fillerItems from '../trials/relevance_fillers.csv';
+import practiceItems from '../trials/practice_stimuli.csv';
 import answerConditionsRaw from '../trials/answer-conditions.csv';
 import _ from 'lodash';
 
@@ -150,7 +212,8 @@ var mainItems = _.flatMap(_.range(0,10), function(i) {
 // console.log(mainItems)
 
 var items =
-    _.slice(mainItems,0,3).concat(
+    _.slice(practiceItems,0,4).concat(
+        _.slice(mainItems,0,3),
         fillerItems[0],
         fillerItems[1],
         _.slice(mainItems,6,12),

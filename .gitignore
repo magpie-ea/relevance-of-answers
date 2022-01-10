@@ -37,3 +37,9 @@ vignettes/*.pdf
 
 # R Environment Variables
 .Renviron
+
+# npm stuff
+node_modules
+
+# intellij files
+.idea
