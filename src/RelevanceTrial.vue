@@ -34,8 +34,8 @@
       >
         <div class="callout">
           <p>
-            Read the scenario, and then judge the probability of the
-            statement.<br /><br />
+            Read the scenario, and then judge the probability that the
+            statement is true.<br /><br />
             Drag the slider to give your best guess at the probability.<br /><br />
             Don't worry if there's not enough information to choose an exact
             probability.<br /><br />
@@ -54,9 +54,12 @@
       >
         <div class="callout">
           <p>
-            It's hard to judge. The context makes me think Aaron might make an
-            exception for the Eiffel Tower, but I can't tell if he'll think it's
-            really worth it.<br /><br />
+            The probability is fairly hard to judge, so you may have low
+            commitment to your judgment. Based on just this information, a
+            high probability like 60% or 80% might be the best guess.
+            But the context leaves open a strong possibility that a low probability
+            like 40% or even 10% is more appropriate (for example, if Aaron
+            doesn't consider the Eiffel tower "unmissable").<br /><br />
             So select a button on the lower end, like 1, 2, or 3.
           </p>
         </div>
@@ -71,8 +74,8 @@
       >
         <div class="callout">
           <p>
-            Read Jess's response, and judge the probability of the statement
-            with this new information.<br /><br />
+            Read Jess's response, and judge the probability that the statement
+            is true <strong>with this new information.</strong><br /><br />
             It's pretty unlikely that Aaron will go to the Eiffel Tower if he
             hates it.<br /><br />
             So select a low probability, like 5%.
@@ -89,9 +92,10 @@
       >
         <div class="callout">
           <p>
-            Now tell us how confident you are about the probability.<br /><br />
-            I'm much more confident than before that the probability is very
-            low, but other probabilities like 2% or 10% are reasonable.<br /><br />
+            Now tell us how committed you are to your probability judgment.<br /><br />
+            You might be more committed than before that the probability is very
+            low, like 1% or 5%. Other similar probabilities like 2% or 10% are plausible,
+            but very different probabilities like 60% or 80% are unreasonable.<br /><br />
             So select a button that's higher than before, like 4, 5, or 6.
           </p>
         </div>
@@ -106,9 +110,9 @@
           <p>
             Now tell us how <strong>helpful</strong> Jess's answer was in
             response to your question.<br /><br />
-            Jess's answer doesn't directly answer the question, but it's still
-            pretty helpful.<br /><br />
-            So select a high value, like 70, 80, or 90.
+            Jess's answer doesn't directly answer the question, but you would probably find it
+            pretty helpful in this context.<br /><br />
+            So move the slider towards the right.
           </p>
         </div>
       </div>
@@ -161,7 +165,7 @@
         "
         style="color: gray;"
       >
-        Your selection means that there is about a
+        Your selection means that there is around a
         {{ $magpie.measurements.sliderResponse }}% chance that
         {{ item.CriticalProposition }}.
       </span>
@@ -172,8 +176,8 @@
         "
         style="color: gray;"
       >
-        Your selection means that you give this answer a helpfulness score of
-        {{ $magpie.measurements.sliderResponse }} on a scale from 0 to 100.
+<!--        Your selection means that you give this answer a helpfulness score of-->
+<!--        {{ $magpie.measurements.sliderResponse }} on a scale from 0 to 100.-->
       </span>
 
       <button
@@ -193,7 +197,7 @@
           !item.TaskType.includes('relevance')
         "
       >
-        How confident are you that the probability is about
+        How committed are you to the probability being around
         {{ $magpie.measurements.sliderResponse }}%?
       </strong>
       <RatingInput
@@ -201,8 +205,8 @@
           sliderResponseClicked == 'true' &&
           !item.TaskType.includes('relevance')
         "
-        left="highly unsure"
-        right="highly confident"
+        left="weakly committed"
+        right="strongly committed"
         :response.sync="$magpie.measurements.confidence"
       />
       <button
@@ -226,6 +230,8 @@
       >
         Submit
       </button>
+
+
     </Slide>
   </Screen>
 </template>

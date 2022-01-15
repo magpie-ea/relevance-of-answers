@@ -20,13 +20,15 @@
       This experiment presents 16 scenarios with a short dialogue.<br /><br />
       Your job is to read the scenarios, and share some of your judgments about
       it.<br /><br />
-      The experiment will take about 15 minutes to complete.<br /><br />
+      The experiment will take 15-20 minutes to complete.<br /><br />
     </InstructionScreen>
 
     <InstructionScreen
       :title="'Let us start with a practice trial to make you familiar with this task.'"
     >
+      You’ll judge the probability of a statement being true, and then judge it again after receiving additional information. Both times you’ll also be asked to rate your level of commitment to your judgment. Finally you'll be asked how helpful the additional information was.
       <br /><br /><br /><br /><br />
+
     </InstructionScreen>
 
     <template v-for="(trial, i) in practiceItems">
@@ -60,7 +62,7 @@ import _ from 'lodash';
 var answerConditions = _.shuffle(answerConditionsRaw);
 
 // creating trial structure
-var vignettes = _.slice(_.shuffle(_.range(1, 12)), 0, 10);
+var vignettes = _.slice(_.shuffle(_.range(1, 13)), 0, 10);
 var mainItems = _.flatMap(_.range(0, 10), function (i) {
   var contextTypeSample = _.sample(['neutral', 'positive', 'negative']);
   return _.filter(relevanceItems, function (o) {
