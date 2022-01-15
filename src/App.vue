@@ -1,16 +1,16 @@
 <style>
 /* Callout box - fixed position at the bottom of the page */
 .callout {
-  position: fixed;
-  top: 5px;
-  left: -10px;
-  margin-left: 20px;
-  max-width: 220px;
-  text-align: left;
-  padding: 15px;
+  /* position: fixed; */
+  /* top: 5px; */
+  /* left: -10px; */
+  /* margin-left: 20px; */
+  /* max-width: 220px; */
+  /* text-align: left; */
+  /* padding: 15px; */
   background-color: #ebebeb;
   color: black;
-  font-size: 15px;
+  /* font-size: 15px; */
 }
 </style>
 
@@ -26,13 +26,12 @@
     <InstructionScreen
       :title="'Let us start with a practice trial to make you familiar with this task.'"
     >
-      You’ll judge the probability of a statement being true, and then judge it again after receiving additional information. Both times you’ll also be asked to rate your level of commitment to your judgment. Finally you'll be asked how helpful the additional information was.
+      You’ll judge the probability of a statement being true, and then judge it again after receiving additional information. Both times you’ll also be asked to rate your level of commitment to your judgment. Finally you'll be asked how {{group == "helpful" ? 'helpful' : 'relevant'}} the additional information was.
       <br /><br /><br /><br /><br />
-
     </InstructionScreen>
 
     <template v-for="(trial, i) in practiceItems">
-      <RelevanceTrial :key="i" :trial-n-r="i" :item="trial" />
+      <RelevanceTrial :key="i" :trial-n-r="i" :item="trial" :group="group" />
     </template>
 
     <InstructionScreen
@@ -42,7 +41,7 @@
     </InstructionScreen>
 
     <template v-for="(trial, i) in items">
-      <RelevanceTrial items:key="i" :trial-n-r="i" :item="trial" :progress="i / items.length" />/>
+      <RelevanceTrial items:key="i" :trial-n-r="i" :item="trial" :group="group" :progress="i / items.length" />/>
     </template>
 
     <PostTestScreen />
@@ -60,6 +59,13 @@ import answerConditionsRaw from '../trials/answer-conditions.csv';
 import _ from 'lodash';
 
 var answerConditions = _.shuffle(answerConditionsRaw);
+
+// group allocation: 'helpful' vs 'relevant'
+//   whether participants see questions regarding helpfulness or relevance
+//   all items are formulated in therms of helpfulness
+//   if group is 'relevance', we substitute the relevant entries either
+//   during the creation of the stimuli or in situ when the material is shown
+var group = _.sample(['helpful', 'relevant'])
 
 // creating trial structure
 var vignettes = _.slice(_.shuffle(_.range(1, 13)), 0, 10);
@@ -104,7 +110,8 @@ export default {
   data() {
     return {
       items: items,
-      practiceItems: practiceItems
+      practiceItems: practiceItems,
+      group : group
     };
   },
   computed: {
@@ -112,6 +119,11 @@ export default {
     _() {
       return _;
     }
+  },
+  mounted() {
+    this.$magpie.addExpData({
+      group : group
+    });
   }
 };
 </script>
