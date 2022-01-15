@@ -42,7 +42,7 @@
     </InstructionScreen>
 
     <template v-for="(trial, i) in items">
-      <RelevanceTrial :key="i" :trial-n-r="i" :item="trial" />
+      <RelevanceTrial items:key="i" :trial-n-r="i" :item="trial" :progress="i / items.length" />/>
     </template>
 
     <PostTestScreen />

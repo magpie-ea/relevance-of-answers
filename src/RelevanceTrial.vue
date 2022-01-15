@@ -176,8 +176,7 @@
         "
         style="color: gray;"
       >
-<!--        Your selection means that you give this answer a helpfulness score of-->
-<!--        {{ $magpie.measurements.sliderResponse }} on a scale from 0 to 100.-->
+       You selected {{ $magpie.measurements.sliderResponse }} on a scale from 0 to 100.
       </span>
 
       <button
