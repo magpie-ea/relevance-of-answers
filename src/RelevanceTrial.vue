@@ -26,118 +26,129 @@
       />
 
     <div class="callout"
+         v-if="
+               item.TrialType == 'practice' &&
+               sliderResponseClicked == 'false' &&
+               item.TaskType.includes('prior')
+               "
+         >
+      <p>
+        <strong>Instructions:</strong> Each trial starts with the description of a context.
+        Always read this description very carefully.
+      </p>
+    </div>
+
+    <span style="color: gray;">Context:</span> {{ item.Context }}
+    <br />
+    <br />
+    {{ item.YourQuestionIntro }}
+    <br />
+    <strong>"{{ item.YourQuestion }}"</strong>
+    <br />
+    <br />
+
+    <!-- show answer unless 'prior' or 'reasoning' trials -->
+    <div
       v-if="
-            item.TrialType == 'practice' &&
-            sliderResponseClicked == 'false' &&
-            item.TaskType.includes('prior')
-            "
-      >
-        <p>
-          <strong>Instructions:</strong> Each trial starts with the description of a context.
-          Always read this description very carefully.
-          </p>
-      </div>
-
-      <span style="color: gray;">Context:</span> {{ item.Context }}
-      <br />
-      <br />
-      {{ item.YourQuestionIntro }}
-      <br />
-      <strong>"{{ item.YourQuestion }}"</strong>
-      <br />
-      <br />
-
-      <!-- show answer unless 'prior' or 'reasoning' trials -->
-      <div
-        v-if="
-          !(
+            !(
             item.TaskType.includes('prior') |
             item.TrialType.includes('reasoning')
-          )
-        "
-        style="background-color: lightblue; display: inline-block;"
+            )
+            "
+      style="background-color: lightblue; display: inline-block;"
       >
-        {{ item.AnswerIntro }}
-        <br />
-        <strong>"{{ item.Answer }}"</strong>
-      </div>
-      <!-- show additional information in 'reasoning' trials -->
-      <div
-        v-if="
-          !item.TaskType.includes('prior') &&
-          item.TrialType.includes('reasoning')
-        "
-        style="background-color: lightblue; display: inline-block;"
-      >
-        <strong>{{ item.Answer }}</strong>
-      </div>
+      {{ item.AnswerIntro }}
       <br />
-      <br />
-
-      <!-- instructions for practice trials PRIOR -->
-      <div class="callout"
+      <strong>"{{ item.Answer }}"</strong>
+    </div>
+    <!-- show additional information in 'reasoning' trials -->
+    <div
       v-if="
-            item.TrialType == 'practice' &&
-            sliderResponseClicked == 'false' &&
-            item.TaskType.includes('prior')
+            !item.TaskType.includes('prior') &&
+            item.TrialType.includes('reasoning')
+            "
+      style="background-color: lightblue; display: inline-block;"
+      >
+      <strong>{{ item.Answer }}</strong>
+    </div>
+    <br />
+    <br />
+
+    <!-- instructions for practice trials PRIOR -->
+    <div class="callout"
+         v-if="
+               item.TrialType == 'practice' &&
+               sliderResponseClicked == 'false' &&
+               item.TaskType.includes('prior')
+               "
+         >
+      <p>
+        <strong>Instructions:</strong> Then you judge the probability that
+        the content of the question might be true.
+        Drag the slider to give your best guess at the probability.
+        Don't worry if there's not enough information to choose an exact
+        probability. Just give us an intuitive guess.
+
+      </p>
+    </div>
+
+    <!-- instructions for practice trials POSTERIOR -->
+    <div v-if="
+               item.TrialType == 'practice' &&
+               sliderResponseClicked == 'false' &&
+               item.TaskType.includes('posterior')
+               ">
+      <div class="callout">
+        <p>
+          <strong>Instructions:</strong>
+          Next, you will be shown an answer to your question.
+          Read this answer carefully, and judge the probability that the statement
+          is true <strong>with this new information.</strong>
+        </p>
+      </div>
+    </div>
+    <!-- instructions for practice trials RELEVANCE -->
+    <div
+      v-if="
+            item.TrialType == 'practice' && item.TaskType.includes('relevance')
             "
       >
+      <div class="callout">
         <p>
-          <strong>Instructions:</strong> Then you judge the probability that
-          the content of the question might be true.
-           Drag the slider to give your best guess at the probability.
-            Don't worry if there's not enough information to choose an exact
-            probability. Just give us an intuitive guess.
-
-          </p>
+          Now tell us how <strong>{{group == 'helpful' ? 'helpful' : 'relevant'}}</strong>
+          Jess's answer was in
+          response to your question.
+          Jess's answer doesn't directly answer the question, but you would probably find it
+          pretty {{group == 'helpful' ? 'helpful' : 'relevant'}} in this context.
+          So move the slider towards the right.
+        </p>
       </div>
+    </div>
 
-      <!-- instructions for practice trials POSTERIOR -->
-      <div v-if="
-            item.TrialType == 'practice' &&
-            sliderResponseClicked == 'false' &&
-            item.TaskType.includes('posterior')
-          ">
-        <div class="callout">
-          <p>
-            <strong>Instructions:</strong>
-            Next, you will be shown an answer to your question.
-            Read this answer carefully, and judge the probability that the statement
-            is true <strong>with this new information.</strong>
-          </p>
-        </div>
-      </div>
-      <!-- instructions for practice trials RELEVANCE -->
-      <div
-        v-if="
-          item.TrialType == 'practice' && item.TaskType.includes('relevance')
-        "
+
+    <!-- Task question -->
+    <!-- this replacement breaks if the string 'helpful' occurs in a 'likelihood' question -->
+    <strong>{{ group == "helpful" ? item.TaskQuestion : item.TaskQuestion.replace('helpful', 'relevant') }}</strong>
+
+    <div
+     v-if="
+            item.TaskType.includes('posterior') |
+            item.TrialType.includes('reasoning')
+            "
+      style="color: gray;"
       >
-        <div class="callout">
-          <p>
-            Now tell us how <strong>{{group == helpful ? 'helpful' : 'relevant'}}</strong>
-            Jess's answer was in
-            response to your question.
-            Jess's answer doesn't directly answer the question, but you would probably find it
-            pretty {{group == helpful ? 'helpful' : 'relevant'}} in this context.
-            So move the slider towards the right.
-          </p>
-        </div>
-      </div>
+      [<strong>Reminder</strong>: Before receiving the answer you selected probability {{ $magpie.Probability }}% and indicated a commitment level {{ $magpie.Commit }}.]
+    </div>
 
 
-      <!-- this replacement breaks if the string 'helpful' occurs in a 'likelihood' question -->
-      <strong>{{ group == "helpful" ? item.TaskQuestion : item.TaskQuestion.replace('helpful', 'relevant') }}</strong>
-
-
-      <SliderInput
-        :left="group == 'helpful' ? item.SliderLabelLeft : item.SliderLabelLeft.replace('unhelpful', 'irrelevant')"
-        :right="group == 'helpful' ? item.SliderLabelRight : item.SliderLabelRight.replace('helpful', 'relevant')"
-        :response.sync="$magpie.measurements.sliderResponse"
-        :disabled="sliderResponseClicked == 'true'"
-        :initial="0"
+    <SliderInput
+      :left="group == 'helpful' ? item.SliderLabelLeft : item.SliderLabelLeft.replace('unhelpful', 'irrelevant')"
+      :right="group == 'helpful' ? item.SliderLabelRight : item.SliderLabelRight.replace('helpful', 'relevant')"
+      :response.sync="$magpie.measurements.sliderResponse"
+      :disabled="sliderResponseClicked == 'true'"
+      :initial="0"
       />
-      <span
+    <span
         v-if="
           $magpie.measurements.sliderResponse >= 0 &&
           !item.TaskType.includes('relevance')
@@ -197,7 +208,9 @@
           sliderResponseClicked == 'false' &&
           !item.TaskType.includes('relevance')
         "
-        @click="toggleSliderResponseFlag()"
+        @click="toggleSliderResponseFlag();
+                $magpie.Probability = $magpie.measurements.sliderResponse;
+                recordProbabilityResponse($magpie.measurements.sliderResponse)"
       >
         Continue
       </button>
@@ -266,6 +279,10 @@ So select a button that's higher than before, like 4, 5, or 6.
         right="strongly committed"
         :response.sync="$magpie.measurements.confidence"
       />
+      <div v-if="$magpie.measurements.confidence == 1">
+        {{$magpie.measurements.confidence}}
+      </div>
+
       <button
         v-if="
           $magpie.measurements.confidence >= 0 &&
@@ -273,6 +290,8 @@ So select a button that's higher than before, like 4, 5, or 6.
         "
         @click="
           toggleSliderResponseFlag();
+          $magpie.Commit = $magpie.measurements.confidence;
+          recordCommitmentResponse($magpie.measurements.confidence);
           $magpie.saveAndNextScreen();
         "
       >
@@ -295,6 +314,8 @@ So select a button that's higher than before, like 4, 5, or 6.
 
 <script>
 var sliderResponseClicked = 'false';
+var lastProbabilityResponse = -1;
+var lastCommitmentResponse  = -1;
 
 export default {
   name: 'RelevanceTrial',
@@ -314,10 +335,20 @@ export default {
   },
   data() {
     return {
-      sliderResponseClicked: sliderResponseClicked
+        sliderResponseClicked: sliderResponseClicked,
+        lastProbabilityResponse : lastProbabilityResponse,
+        lastCommitmentResponse  : lastCommitmentResponse
     };
   },
   methods: {
+    recordProbabilityResponse: function(response) {
+        this.lastProbabilityResponse = response;
+        console.log(this.lastProbabilityResponse)
+    },
+    recordCommitmentResponse: function(response) {
+        this.lastCommitmentResponse = response;
+        console.log(this.lastCommitmentResponse)
+    },
     toggleSliderResponseFlag: function () {
       if (this.sliderResponseClicked == 'true') {
         this.sliderResponseClicked = 'false';
