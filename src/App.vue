@@ -26,8 +26,11 @@
     <InstructionScreen
       :title="'Let us start with a practice trial to make you familiar with this task.'"
     >
-      You’ll judge the probability of a statement being true, and then judge it again after receiving additional information. Both times you’ll also be asked to rate your level of commitment to your judgment. Finally you'll be asked how {{group == "helpful" ? 'helpful' : 'relevant'}} the additional information was.
-      <br /><br /><br /><br /><br />
+      You’ll judge the probability of a statement being true, and then judge it
+      again after receiving additional information. Both times you’ll also be
+      asked to rate your level of commitment to your judgment. Finally you'll be
+      asked how {{ group == 'helpful' ? 'helpful' : 'relevant' }} the additional
+      information was. <br /><br /><br /><br /><br />
     </InstructionScreen>
 
     <template v-for="(trial, i) in practiceItems">
@@ -41,7 +44,13 @@
     </InstructionScreen>
 
     <template v-for="(trial, i) in items">
-      <RelevanceTrial items:key="i" :trial-n-r="i" :item="trial" :group="group" :progress="i / items.length" />/>
+      <RelevanceTrial
+        :key="i"
+        :trial-n-r="i"
+        :item="trial"
+        :group="group"
+        :progress="i / items.length"
+      />/>
     </template>
 
     <PostTestScreen />
@@ -65,7 +74,7 @@ var answerConditions = _.shuffle(answerConditionsRaw);
 //   all items are formulated in therms of helpfulness
 //   if group is 'relevance', we substitute the relevant entries either
 //   during the creation of the stimuli or in situ when the material is shown
-var group = _.sample(['helpful', 'relevant'])
+var group = _.sample(['helpful', 'relevant']);
 
 // creating trial structure
 var vignettes = _.slice(_.shuffle(_.range(1, 13)), 0, 10);
@@ -111,7 +120,7 @@ export default {
     return {
       items: items,
       practiceItems: practiceItems,
-      group : group
+      group: group
     };
   },
   computed: {
@@ -122,7 +131,7 @@ export default {
   },
   mounted() {
     this.$magpie.addExpData({
-      group : group
+      group: group
     });
   }
 };
