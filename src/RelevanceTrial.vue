@@ -28,7 +28,7 @@
     <div class="callout"
          v-if="
                item.TrialType == 'practice' &&
-               sliderResponseClicked == 'false' &&
+               !sliderResponseClicked &&
                item.TaskType.includes('prior')
                "
          >
@@ -78,7 +78,7 @@
     <div class="callout"
          v-if="
                item.TrialType == 'practice' &&
-               sliderResponseClicked == 'false' &&
+               !sliderResponseClicked &&
                item.TaskType.includes('prior')
                "
          >
@@ -95,7 +95,7 @@
     <!-- instructions for practice trials POSTERIOR -->
     <div v-if="
                item.TrialType == 'practice' &&
-               sliderResponseClicked == 'false' &&
+               !sliderResponseClicked &&
                item.TaskType.includes('posterior')
                ">
       <div class="callout">
@@ -132,7 +132,7 @@
 
     <div
      v-if="
-            item.TaskType.includes('posterior') |
+            item.TaskType.includes('posterior') ||
             item.TrialType.includes('reasoning')
             "
       style="color: gray;"
@@ -145,7 +145,7 @@
       :left="group == 'helpful' ? item.SliderLabelLeft : item.SliderLabelLeft.replace('unhelpful', 'irrelevant')"
       :right="group == 'helpful' ? item.SliderLabelRight : item.SliderLabelRight.replace('helpful', 'relevant')"
       :response.sync="$magpie.measurements.sliderResponse"
-      :disabled="sliderResponseClicked == 'true'"
+      :disabled="sliderResponseClicked"
       :initial="0"
       />
     <span
@@ -172,7 +172,7 @@
       <div class="callout"
       v-if="
             item.TrialType == 'practice' &&
-            sliderResponseClicked == 'false' &&
+            !sliderResponseClicked &&
             item.TaskType.includes('prior') &&
             $magpie.measurements.sliderResponse >= 0 &&
             !item.TaskType.includes('relevance')
@@ -187,7 +187,7 @@
       <div class="callout"
       v-if="
             item.TrialType == 'practice' &&
-            sliderResponseClicked == 'false' &&
+            !sliderResponseClicked &&
             item.TaskType.includes('posterior') &&
             $magpie.measurements.sliderResponse >= 0 &&
             !item.TaskType.includes('relevance')
@@ -205,7 +205,7 @@
       <button
         v-if="
           $magpie.measurements.sliderResponse >= 0 &&
-          sliderResponseClicked == 'false' &&
+          !sliderResponseClicked &&
           !item.TaskType.includes('relevance')
         "
         @click="toggleSliderResponseFlag();"
@@ -218,9 +218,8 @@
       <div
         v-if="
           item.TrialType == 'practice' &&
-          sliderResponseClicked == 'true' &&
+          sliderResponseClicked &&
           item.TaskType.includes('prior') &&
-          sliderResponseClicked == 'true' &&
           !item.TaskType.includes('relevance')
         "
       >
@@ -243,9 +242,8 @@
       <div
         v-if="
           item.TrialType == 'practice' &&
-          sliderResponseClicked == 'true' &&
+          sliderResponseClicked &&
           item.TaskType.includes('posterior') &&
-          sliderResponseClicked == 'true' &&
           !item.TaskType.includes('relevance')
         "
       >
@@ -261,7 +259,7 @@ So select a button that's higher than before, like 4, 5, or 6.
 
       <strong
         v-if="
-          sliderResponseClicked == 'true' &&
+          sliderResponseClicked &&
           !item.TaskType.includes('relevance')
         "
       >
@@ -270,7 +268,7 @@ So select a button that's higher than before, like 4, 5, or 6.
       </strong>
       <RatingInput
         v-if="
-          sliderResponseClicked == 'true' &&
+          sliderResponseClicked &&
           !item.TaskType.includes('relevance')
         "
         left="weakly committed"
@@ -309,10 +307,6 @@ So select a button that's higher than before, like 4, 5, or 6.
 </template>
 
 <script>
-var sliderResponseClicked = 'false';
-var lastProbabilityResponse = -1;
-var lastCommitmentResponse  = -1;
-
 export default {
   name: 'RelevanceTrial',
   props: {
@@ -331,7 +325,7 @@ export default {
   },
   data() {
     return {
-        sliderResponseClicked: 'false',
+        sliderResponseClicked: false,
     };
   },
   computed: {
@@ -342,10 +336,10 @@ export default {
   },
   methods: {
     toggleSliderResponseFlag: function () {
-      if (this.sliderResponseClicked == 'true') {
-        this.sliderResponseClicked = 'false';
+      if (this.sliderResponseClicked) {
+        this.sliderResponseClicked = false;
       } else {
-        this.sliderResponseClicked = 'true';
+        this.sliderResponseClicked = true;
       }
     }
   }
