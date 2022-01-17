@@ -137,7 +137,7 @@
             "
       style="color: gray;"
       >
-      [<strong>Reminder</strong>: Before receiving the answer you selected probability {{ $magpie.Probability }}% and indicated a commitment level {{ $magpie.Commit }}.]
+      [<strong>Reminder</strong>: Before receiving the answer you selected probability {{ lastTrial.sliderResponse }}% and indicated a commitment level {{ lastTrial.confidence }}.]
     </div>
 
 
@@ -208,9 +208,7 @@
           sliderResponseClicked == 'false' &&
           !item.TaskType.includes('relevance')
         "
-        @click="toggleSliderResponseFlag();
-                $magpie.Probability = $magpie.measurements.sliderResponse;
-                recordProbabilityResponse($magpie.measurements.sliderResponse)"
+        @click="toggleSliderResponseFlag();"
       >
         Continue
       </button>
@@ -290,8 +288,6 @@ So select a button that's higher than before, like 4, 5, or 6.
         "
         @click="
           toggleSliderResponseFlag();
-          $magpie.Commit = $magpie.measurements.confidence;
-          recordCommitmentResponse($magpie.measurements.confidence);
           $magpie.saveAndNextScreen();
         "
       >
@@ -335,20 +331,16 @@ export default {
   },
   data() {
     return {
-        sliderResponseClicked: sliderResponseClicked,
-        lastProbabilityResponse : lastProbabilityResponse,
-        lastCommitmentResponse  : lastCommitmentResponse
+        sliderResponseClicked: 'false',
     };
   },
+  computed: {
+    lastTrial() {
+      const data = this.$magpie.getAllData()
+      return data[data.length-1]
+    }
+  },
   methods: {
-    recordProbabilityResponse: function(response) {
-        this.lastProbabilityResponse = response;
-        console.log(this.lastProbabilityResponse)
-    },
-    recordCommitmentResponse: function(response) {
-        this.lastCommitmentResponse = response;
-        console.log(this.lastCommitmentResponse)
-    },
     toggleSliderResponseFlag: function () {
       if (this.sliderResponseClicked == 'true') {
         this.sliderResponseClicked = 'false';
