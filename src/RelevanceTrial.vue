@@ -17,13 +17,13 @@
           certainty_max: item.certainty_max
         }"
       />
-      <KeypressInput
-        :response.sync="$magpie.measurements.launch"
-        :keys="{
-          '~': 'next'
-        }"
-        @update:response="$magpie.saveAndNextScreen()"
-      />
+      <!-- <KeypressInput -->
+      <!--   :response.sync="$magpie.measurements.launch" -->
+      <!--   :keys="{ -->
+      <!--     '~': 'next' -->
+      <!--   }" -->
+      <!--   @update:response="$magpie.saveAndNextScreen()" -->
+      <!-- /> -->
 
       <div
         v-if="
