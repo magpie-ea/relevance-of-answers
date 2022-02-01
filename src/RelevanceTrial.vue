@@ -138,13 +138,12 @@
 
       <div
         v-if="
-          item.TaskType.includes('posterior') ||
-          item.TrialType.includes('reasoning')
+          item.TaskType.includes('posterior')
         "
         style="color: gray;"
       >
-        [<strong>Reminder</strong>: Before receiving the answer you selected
-        probability {{ lastTrial.sliderResponse }}% and indicated a commitment
+        [<strong>Reminder</strong>: Previously, you selected
+        probability {{ lastTrial.sliderResponse }}% and commitment
         level {{ lastTrial.confidence }}.]
       </div>
 
