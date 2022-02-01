@@ -1,6 +1,6 @@
 <!-- RelevanceTrial.vue -->
 <template>
-  <Screen>
+  <Screen :progress="progress">
     <Slide>
       <Record
         :data="{
@@ -333,6 +333,10 @@ export default {
     group: {
       type: String,
       required: true
+    },
+    progress: {
+      type: Number,
+      default: undefined
     }
   },
   data() {
