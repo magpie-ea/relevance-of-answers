@@ -289,9 +289,6 @@
         right="strongly committed"
         :response.sync="$magpie.measurements.confidence"
       />
-      <div v-if="$magpie.measurements.confidence == 1">
-        {{ $magpie.measurements.confidence }}
-      </div>
 
       <button
         v-if="
