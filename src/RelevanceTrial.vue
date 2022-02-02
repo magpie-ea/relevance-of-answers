@@ -17,13 +17,13 @@
           certainty_max: item.certainty_max
         }"
       />
-      <!-- <KeypressInput -->
-      <!--   :response.sync="$magpie.measurements.launch" -->
-      <!--   :keys="{ -->
-      <!--     '~': 'next' -->
-      <!--   }" -->
-      <!--   @update:response="$magpie.saveAndNextScreen()" -->
-      <!-- /> -->
+      <KeypressInput
+        :response.sync="$magpie.measurements.launch"
+        :keys="{
+          '~': 'next'
+        }"
+        @update:response="$magpie.saveAndNextScreen()"
+      />
 
       <div
         v-if="
@@ -243,7 +243,7 @@
           <p>
             <strong>Instructions:</strong>
             We now ask you for how committed you are to the probability
-            judgement you gave. In the case at hand, the probability is fairly
+            judgment you gave. In the case at hand, the probability is fairly
             hard to judge, so you may have low commitment to your judgment.
             Based on just this information, a high probability like 60% or 80%
             might be the best guess. But the context leaves open a strong

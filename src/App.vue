@@ -18,19 +18,22 @@
   <Experiment title="Judging answers to questions.">
     <InstructionScreen :title="'Welcome!'">
       This experiment presents 16 scenarios with a short dialogue.<br /><br />
-      Your job is to read the scenarios, and share some of your judgments about
-      it.<br /><br />
+      Your task is to read the scenarios, and share some of your judgments about
+      them.<br /><br />
       The experiment will take 15-20 minutes to complete.<br /><br />
     </InstructionScreen>
 
     <InstructionScreen
-      :title="'Let us start with a practice trial to make you familiar with this task.'"
-    >
+      :title="'Instructions'"
+      >
       You’ll judge the probability of a statement being true, and then judge it
       again after receiving additional information. Both times you’ll also be
       asked to rate your level of commitment to your judgment. Finally you'll be
       asked how {{ group == 'helpful' ? 'helpful' : 'relevant' }} the additional
-      information was. <br /><br /><br /><br /><br />
+      information was.
+      <br>
+      Let us start with a practice trial to make you familiar with this task.
+      <br /><br /><br /><br /><br />
     </InstructionScreen>
 
     <template v-for="(trial, i) in practiceItems">
