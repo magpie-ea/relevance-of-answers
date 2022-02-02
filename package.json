@@ -9,7 +9,7 @@
     "lint:style": "vue-cli-service lint:style"
   },
   "dependencies": {
-    "magpie-base": "^0.4.6"
+    "magpie-base": "^0.5.0"
   },
   "devDependencies": {
     "@samhammer/vue-cli-plugin-stylelint": "~2.1.0",
