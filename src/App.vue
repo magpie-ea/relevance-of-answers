@@ -58,7 +58,8 @@
 
     <PostTestScreen />
 
-    <DebugResultsScreen />
+    <!-- <DebugResultsScreen /> -->
+    <SubmitResultsScreen/>
   </Experiment>
 </template>
 
