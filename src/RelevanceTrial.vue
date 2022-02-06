@@ -17,13 +17,13 @@
           certainty_max: item.certainty_max
         }"
       />
-      <KeypressInput
-        :response.sync="$magpie.measurements.launch"
-        :keys="{
-          '~': 'next'
-        }"
-        @update:response="$magpie.saveAndNextScreen()"
-      />
+      <!-- <KeypressInput -->
+      <!--   :response.sync="$magpie.measurements.launch" -->
+      <!--   :keys="{ -->
+      <!--     '~': 'next' -->
+      <!--   }" -->
+      <!--   @update:response="$magpie.saveAndNextScreen()" -->
+      <!-- /> -->
 
       <div
         v-if="
@@ -160,7 +160,7 @@
         "
         :response.sync="$magpie.measurements.sliderResponse"
         :disabled="sliderResponseClicked"
-        :initial="0"
+        :initial="50"
       />
       <span
         v-if="
@@ -242,7 +242,7 @@
         <div class="callout">
           <p>
             <strong>Instructions:</strong>
-            We now ask you for how committed you are to the probability
+            We now ask you how committed you are to the probability
             judgment you gave. In the case at hand, the probability is fairly
             hard to judge, so you may have low commitment to your judgment.
             Based on just this information, a high probability like 60% or 80%
