@@ -98,7 +98,7 @@ var mainItems = _.flatMap(_.range(0, 10), function (i) {
 
 // console.log(mainItems)
 
-var items = _.slice(mainItems, 0, 3).concat(
+var items = _.slice(mainItems, 0, 6).concat(
   fillerItems[0],
   fillerItems[1],
   _.slice(mainItems, 6, 12),
