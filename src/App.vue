@@ -97,10 +97,10 @@ var mainItems = _.flatMap(_.range(0, 10), function (i) {
   });
 });
 
-var items = _.slice(mainItems, 0, 6).concat(
+var items = _.slice(mainItems, 0, 3).concat(
   fillerItems[0],
   fillerItems[1],
-  _.slice(mainItems, 6, 12),
+  _.slice(mainItems, 3, 12),
   fillerItems[4],
   _.slice(mainItems, 12, 18),
   fillerItems[2],
