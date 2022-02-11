@@ -70,33 +70,32 @@
 import relevanceItems from '../trials/relevance_stimuli.csv';
 import fillerItems from '../trials/relevance_fillers.csv';
 import practiceItems from '../trials/practice_stimuli.csv';
-import answerConditionsRaw from '../trials/answer-conditions.csv';
+import answerConditions from '../trials/answer-conditions.csv';
 import _ from 'lodash';
 
-var answerConditions = _.shuffle(answerConditionsRaw);
+var contextConditions = ['neutral', 'positive', 'negative']
 
 // group allocation: 'helpful' vs 'relevant'
 //   whether participants see questions regarding helpfulness or relevance
-//   all items are formulated in therms of helpfulness
+//   all items are formulated in terms of helpfulness
 //   if group is 'relevance', we substitute the relevant entries either
 //   during the creation of the stimuli or in situ when the material is shown
 var group = _.sample(['helpful', 'relevant']);
 
 // creating trial structure
 var vignettes = _.slice(_.shuffle(_.range(1, 13)), 0, 10);
+var vAnswerConditions = _.shuffle(_.range(0, 7).concat(_.slice(_.shuffle(_.range(0, 7)), 0, 3)));
+var vContextConditions = _.shuffle([0,0,0,1,1,1,2,2,2]).concat([_.sample([0,1,2])])
 var mainItems = _.flatMap(_.range(0, 10), function (i) {
-  var contextTypeSample = _.sample(['neutral', 'positive', 'negative']);
   return _.filter(relevanceItems, function (o) {
     return (
       o.StimID == vignettes[i] &&
-      o.AnswerCertainty == answerConditions[i].AnswerCertainty &&
-      o.AnswerPolarity == answerConditions[i].AnswerPolarity &&
-      o.ContextType == contextTypeSample
+      o.AnswerCertainty == answerConditions[vAnswerConditions[i]].AnswerCertainty &&
+      o.AnswerPolarity == answerConditions[vAnswerConditions[i]].AnswerPolarity &&
+      o.ContextType == contextConditions[vContextConditions[i]]
     );
   });
 });
-
-// console.log(mainItems)
 
 var items = _.slice(mainItems, 0, 6).concat(
   fillerItems[0],
@@ -112,7 +111,18 @@ var items = _.slice(mainItems, 0, 6).concat(
   _.slice(mainItems, 27, 30)
 );
 
-// console.log(items)
+console.log(items)
+for (let i = 0; i < items.length; i++) {
+  console.log (
+    i + " | " +
+    items[i].StimID + " | " +
+    items[i].AnswerCertainty + " | " +
+    items[i].AnswerPolarity + " | " +
+    items[i].ContextType + " | " +
+    items[i].TrialType + " | " +
+    items[i].TaskType
+  );
+}
 
 // import component
 import RelevanceTrial from './RelevanceTrial.vue';
