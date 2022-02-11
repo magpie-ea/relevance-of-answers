@@ -111,18 +111,18 @@ var items = _.slice(mainItems, 0, 6).concat(
   _.slice(mainItems, 27, 30)
 );
 
-console.log(items)
-for (let i = 0; i < items.length; i++) {
-  console.log (
-    i + " | " +
-    items[i].StimID + " | " +
-    items[i].AnswerCertainty + " | " +
-    items[i].AnswerPolarity + " | " +
-    items[i].ContextType + " | " +
-    items[i].TrialType + " | " +
-    items[i].TaskType
-  );
-}
+//console.log(items)
+//for (let i = 0; i < items.length; i++) {
+//  console.log (
+//    i + " | " +
+//    items[i].StimID + " | " +
+//    items[i].AnswerCertainty + " | " +
+//    items[i].AnswerPolarity + " | " +
+//    items[i].ContextType + " | " +
+//    items[i].TrialType + " | " +
+//    items[i].TaskType
+//  );
+//}
 
 // import component
 import RelevanceTrial from './RelevanceTrial.vue';
