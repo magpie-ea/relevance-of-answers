@@ -48,12 +48,16 @@ def exp10(x):
 def entropy_reduction(p, q):
     return(entropy([p, 1-p], base=2) - entropy([q, 1-q], base=2))
 
+def bayes_factor(p, q):
+    # p is posterior, q is prior
+    return np.log10((np.float64(p) / (1-p)) * (np.float64(1-q) / q))
+
 def compute_metrics(raw_data, prior_colname, posterior_colname):
     items = raw_data
     items['kl'] = items.apply(lambda x: kl(x[posterior_colname], x[prior_colname]), axis=1)
     items['kl_util'] = items.apply(lambda x: exp10(kl(x[posterior_colname], x[prior_colname])), axis=1)
     items['entropy_reduction'] = items.apply(lambda x: entropy_reduction(x[prior_colname], x[posterior_colname]), axis=1)
-    # TODO: add bayes factor
+    items['bayes_factor'] = items.apply(lambda x: bayes_factor(x[posterior_colname], x[prior_colname]), axis=1)
     return items 
     
 if __name__ == "__main__":
