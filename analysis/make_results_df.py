@@ -51,3 +51,4 @@ df = df.join(df_qual[["pass"]], on="submission_id")
 
 # Reduce results to all who passed, and to only experimental trials
 df = df[df.apply(lambda x: x["TrialType"] == "main" and x["pass"], axis=1)]
+df.to_csv(path_or_buf=args.output)
