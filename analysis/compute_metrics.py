@@ -24,14 +24,10 @@ def wrangle_data(df_long, aggregrate_participants=False, aggregate_group=False):
     if aggregate_group:
         index.remove('group')
     # Pivot dataframe so that TaskType values (prior/posterior/helpfulness) become columns
-    df_wide = df_long.pivot_table(
-        index=index,
-        columns='TaskType',
-        values=[
-            'sliderResponse', 
-            'confidence'
-            ],
-    ).reset_index()
+    df_long["AnswerPolarity"] = df_long["AnswerPolarity"].fillna('dummy')
+    df_wide = df_long.pivot_table(index=index, columns='TaskType',
+                                  values=['sliderResponse', 'confidence']
+                                  ).reset_index().replace('dummy', np.nan)
     # Collapse multi-indexing: (SliderResponse, prior) -> SliderResponse__prior
     df_wide.columns = [
         '_'.join(reversed(col)).strip().lstrip('_')
