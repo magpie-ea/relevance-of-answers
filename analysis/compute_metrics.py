@@ -11,7 +11,7 @@ def wrangle_data(df_long, aggregrate_participants=False, aggregate_group=False):
     # 'index' determines which columns define unique rows
     index=[
         'submission_id', 
-        'group', # 'helpful' or 'relevant'?
+        'group',  # 'helpful' or 'relevant'?
         'StimID', 
         'AnswerCertainty', 
         'AnswerPolarity', 
@@ -40,24 +40,82 @@ def wrangle_data(df_long, aggregrate_participants=False, aggregate_group=False):
     return df_wide
 
 def kl(p, q):
+    """
+    :param p: posterior
+    :param q: prior
+    :return:
+    """
     return entropy([p, 1-p], [q, 1-q], base=2)
 
 def exp10(x):
     return 1 - (10 ** (-1 * x))
 
 def entropy_reduction(p, q):
-    return(entropy([p, 1-p], base=2) - entropy([q, 1-q], base=2))
+    """
+    :param p: prior
+    :param q: posterior
+    :return: Absolute value of entropy reduction
+    """
+    return abs(entropy([p, 1-p], base=2) - entropy([q, 1-q], base=2))
 
 def bayes_factor(p, q):
-    # p is posterior, q is prior
-    return np.log10((np.float64(p) / (1-p)) * (np.float64(1-q) / q))
+    """
+    :param p: posterior
+    :param q: prior
+    :return: absolute value of log of bayes factor
+    """
+    if p == 1 and q == 1 or p == 0 and q == 0:
+        return 0
+    else:
+        return abs(np.log10((np.float64(p) / (1-p)) * (np.float64(1-q) / q)))
+
+
+def exp_bayes_factor(p, q):
+    """
+    :param p: posterior
+    :param q: prior
+    :return: expontential transformation of absolute value of log of bayes factor
+    TODO: Find simpler closed form
+    """
+    if p == 1 and q == 1 or p == 0 and q == 0:
+        return 0
+    else:
+        return exp10(abs(np.log10((np.float64(p) / (1-p)) * (np.float64(1-q) / q))))
+
+
+def posterior_distance(p):
+    """
+    :param p: posterior
+    :return: How far on a scale of 0 to 1 is p from 0.5
+    """
+    return 2 * abs(0.5 - p)
+
+def prior_posterior_distance(p, q):
+    """
+    :param p: prior
+    :param q: posterior
+    :return: Distance between p and q
+    """
+    return abs(p - q)
+
+
 
 def compute_metrics(raw_data, prior_colname, posterior_colname):
+    """
+    I've set all metrics except kl and bayes_factor to lie between 0 and 1.
+    :param raw_data:
+    :param prior_colname:
+    :param posterior_colname:
+    :return:
+    """
     items = raw_data
     items['kl'] = items.apply(lambda x: kl(x[posterior_colname], x[prior_colname]), axis=1)
     items['kl_util'] = items.apply(lambda x: exp10(kl(x[posterior_colname], x[prior_colname])), axis=1)
     items['entropy_reduction'] = items.apply(lambda x: entropy_reduction(x[prior_colname], x[posterior_colname]), axis=1)
     items['bayes_factor'] = items.apply(lambda x: bayes_factor(x[posterior_colname], x[prior_colname]), axis=1)
+    items['exp_bayes_factor'] = items.apply(lambda x: exp_bayes_factor(x[posterior_colname], x[prior_colname]), axis=1)
+    items['posterior_distance'] = items.apply(lambda x: posterior_distance(x[posterior_colname]), axis=1)
+    items['prior_posterior_distance'] = items.apply(lambda x: prior_posterior_distance(x[posterior_colname], x[prior_colname]), axis=1)
     return items 
     
 if __name__ == "__main__":
@@ -70,7 +128,6 @@ if __name__ == "__main__":
     df = pd.read_csv(args.input)
     # Widen dataframe
     df = wrangle_data(df)
-    print(df.columns)
     # Compute predictor metrics
     df = compute_metrics(df, prior_colname='prior_sliderResponse', posterior_colname='posterior_sliderResponse')
     # Get outfile
