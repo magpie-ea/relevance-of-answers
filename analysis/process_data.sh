@@ -1,2 +1,3 @@
-python3 make_results_df.py --raw_responses ../results/pilot/results_80_relevance-answers_pilot_0.2.csv --output OUT_make_results_df.csv
-python3 compute_metrics.py --input OUT_make_results_df.csv --output OUT_compute_metrics.csv
+python3 make_results_df.py --raw_responses ../results/pilot/results_80_relevance-answers_pilot_0.2.csv --output ../results/pilot/results_filtered.tmp
+python3 compute_metrics.py --input ../results/pilot/results_filtered.tmp --output ../results/pilot/results_processed.csv
+rm ../results/pilot/results_filtered.tmp
