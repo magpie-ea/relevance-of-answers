@@ -17,7 +17,7 @@
 <template>
   <Experiment title="Judging answers to questions.">
     <InstructionScreen :title="'Welcome!'">
-      This experiment presents 16 scenarios with a short dialogue.<br /><br />
+      This experiment presents 15 scenarios with a short dialogue.<br /><br />
       Your task is to read the scenarios, and share some of your judgments about
       them.<br /><br />
       <strong>Caveat:</strong> The experiment contains attention check trials. If you read carefully all of the text necessary to complete a trial, you will recognize the attention trials, because they tell you directly what you need to do in order to pass them.<br /><br />
