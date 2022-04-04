@@ -1,11 +1,11 @@
 library(tidyverse)
-#library(lme4)
+library(lme4)
 library(dplyr)
 library(BayesFactor)
 # library(ggpubr)
 
-
-data <- read_csv("relevance-of-answers/results/pilot/results_processed.csv")
+# Make sure to setwd() to the main directory of the repository
+data <- read_csv("results/pilot/results_processed.csv")
 
 # Filter data to exlude points with high range 
 # data <- dplyr::filter(data, prior_range < 0.75, posterior_range < 0.75, helpfulness_range < 0.75)
@@ -23,9 +23,96 @@ data <- rename(data,
     "Pol" = "AnswerPolarity",
     "Con" = "ContextType",
     "Rel" = "relevance_sliderResponse",
+    "BFU" = "exp_bayes_factor",
+    "Part" = "submission_id",
+    "Group" = "group",
 )
 
+# Model 1: No random effects.
+m1 <- lm(Rel ~ BFU, data=data)
+summary(m1)
+# 
+# Call:
+#   lm(formula = Rel ~ BFU, data = data)
+# 
+# Residuals:
+#   Min      1Q  Median      3Q     Max 
+# -0.8264 -0.1578  0.0667  0.1000  0.7263 
+# 
+# Coefficients:
+#   Estimate Std. Error t value Pr(>|t|)    
+# (Intercept)  0.27374    0.03542   7.729    5e-13 ***
+#   BFU          0.64268    0.04757  13.511   <2e-16 ***
+#   ---
+#   Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+# 
+# Residual standard error: 0.2355 on 202 degrees of freedom
+# Multiple R-squared:  0.4747,	Adjusted R-squared:  0.4721 
+# F-statistic: 182.6 on 1 and 202 DF,  p-value: < 2.2e-16
 
+
+# Model 2: Random effects for Group, Participant, and Stimulus
+m2 <- lmer(Rel ~ BFU + (1 | StimID) + (1 | Group) + (1 | Part), data=data)
+summary(m2)
+
+# Linear mixed model fit by REML ['lmerMod']
+# Formula: Rel ~ BFU + (1 | StimID) + (1 | Group) + (1 | Part)
+# Data: data
+# 
+# REML criterion at convergence: -2.4
+# 
+# Scaled residuals: 
+#   Min      1Q  Median      3Q     Max 
+# -3.5244 -0.6819  0.2793  0.4301  3.0882 
+# 
+# Random effects:
+#   Groups   Name        Variance  Std.Dev.
+# Part     (Intercept) 0.0002629 0.01622 
+# StimID   (Intercept) 0.0000000 0.00000 
+# Group    (Intercept) 0.0000000 0.00000 
+# Residual             0.0552237 0.23500 
+# Number of obs: 204, groups:  Part, 21; StimID, 12; Group, 2
+# 
+# Fixed effects:
+#   Estimate Std. Error t value
+# (Intercept)  0.27287    0.03556   7.674
+# BFU          0.64396    0.04753  13.548
+# 
+# Correlation of Fixed Effects:
+#   (Intr)
+# BFU -0.881
+# optimizer (nloptwrap) convergence code: 0 (OK)
+# boundary (singular) fit: see ?isSingular
+
+
+# Model 3: Random effect for Participant only
+m3 <- lmer(Rel ~ BFU + (1 | Part), data=data)
+summary(m3)
+
+# Linear mixed model fit by REML ['lmerMod']
+# Formula: Rel ~ BFU + (1 | Part)
+# Data: data
+# 
+# REML criterion at convergence: -2.4
+# 
+# Scaled residuals: 
+#   Min      1Q  Median      3Q     Max 
+# -3.5244 -0.6819  0.2793  0.4301  3.0883 
+# 
+# Random effects:
+#   Groups   Name        Variance Std.Dev.
+# Part     (Intercept) 0.000263 0.01622 
+# Residual             0.055224 0.23500 
+# Number of obs: 204, groups:  Part, 21
+# 
+# Fixed effects:
+#   Estimate Std. Error t value
+# (Intercept)  0.27287    0.03556   7.674
+# BFU          0.64396    0.04753  13.548
+# 
+# Correlation of Fixed Effects:
+#   (Intr)
+# BFU -0.881
 
 # extract dataframe for custom plot
 
@@ -45,8 +132,8 @@ extract_df <- function(bf_object) {
 
 # MODEL COMPARISON CODE
 
-# run big comparison over subsets of four-factor model
-all_models = generalTestBF(Rel ~ KLU + EntR + Pos + PPD, 
+# run big comparison over subsets of five-factor model
+all_models = generalTestBF(Rel ~ BFU + KLU + EntR + Pos + PPD, 
                                   data = data,
                                   whichModels="all")
 # builtin plotting sucks
