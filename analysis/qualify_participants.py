@@ -12,6 +12,7 @@ PASS_THRESHOLD = 0.75
 
 
 
+
 df = pd.read_csv(args.raw_responses)
 if args.pilot:
     df = df[df.submission_id.apply(lambda x: x >= 3008)]  # Exclude responses from beta testers (i.e. authors & friends)
@@ -52,4 +53,4 @@ df = df.join(df_qual[["pass"]], on="submission_id")
 
 # Reduce results to all who passed, and to only experimental trials
 df = df[df.apply(lambda x: x["TrialType"] == "main" and x["pass"], axis=1)]
-df.to_csv(path_or_buf=args.output)
+df.to_json(path_or_buf=args.output, orient="records", lines=True)

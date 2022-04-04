@@ -2,98 +2,12 @@ import numpy as np
 import pandas as pd
 import argparse
 from scipy.stats import entropy
+from metrics import *
+from ast import literal_eval
 
-# This script takes the output from make_results_df.py
+
+# This script takes the output from widen_dataframe.py or fit_beta.py
 # Reshape dataframe and compute metrics: KL Utility, ER, and Bayes Factor
-
-
-def wrangle_data(df_long, aggregrate_participants=False, aggregate_group=False):
-    # 'index' determines which columns define unique rows
-    index=[
-        'submission_id', 
-        'group',  # 'helpful' or 'relevant'?
-        'StimID', 
-        'AnswerCertainty', 
-        'AnswerPolarity', 
-        'ContextType', 
-    ]
-    # Participants and groups can be averaged over by removing column names from 'index'
-    # because non-unique rows are aggregated by default in pivot_table
-    if aggregrate_participants:
-        index.remove('submission_id')
-    if aggregate_group:
-        index.remove('group')
-    # Pivot dataframe so that TaskType values (prior/posterior/helpfulness) become columns
-    df_long["AnswerPolarity"] = df_long["AnswerPolarity"].fillna('dummy')
-    df_wide = df_long.pivot_table(index=index, columns='TaskType',
-                                  values=['sliderResponse', 'confidence']
-                                  ).reset_index().replace('dummy', np.nan)
-    # Collapse multi-indexing: (SliderResponse, prior) -> SliderResponse__prior
-    df_wide.columns = [
-        '_'.join(reversed(col)).strip().lstrip('_')
-        for col in df_wide.columns.values
-    ]
-    return df_wide
-
-def kl(p, q):
-    """
-    :param p: posterior
-    :param q: prior
-    :return:
-    """
-    return entropy([p, 1-p], [q, 1-q], base=2)
-
-def exp10(x):
-    return 1 - (10 ** (-1 * x))
-
-def entropy_reduction(p, q):
-    """
-    :param p: prior
-    :param q: posterior
-    :return: Absolute value of entropy reduction
-    """
-    return abs(entropy([p, 1-p], base=2) - entropy([q, 1-q], base=2))
-
-def bayes_factor(p, q):
-    """
-    :param p: posterior
-    :param q: prior
-    :return: absolute value of log of bayes factor
-    """
-    if p == 1 and q == 1 or p == 0 and q == 0:
-        return 0
-    else:
-        return abs(np.log10((np.float64(p) / (1-p)) * (np.float64(1-q) / q)))
-
-
-def exp_bayes_factor(p, q):
-    """
-    :param p: posterior
-    :param q: prior
-    :return: expontential transformation of absolute value of log of bayes factor
-    TODO: Find simpler closed form
-    """
-    if p == 1 and q == 1 or p == 0 and q == 0:
-        return 0
-    else:
-        return exp10(abs(np.log10((np.float64(p) / (1-p)) * (np.float64(1-q) / q))))
-
-
-def posterior_distance(p):
-    """
-    :param p: posterior
-    :return: How far on a scale of 0 to 1 is p from 0.5
-    """
-    return 2 * abs(0.5 - p)
-
-def prior_posterior_distance(p, q):
-    """
-    :param p: prior
-    :param q: posterior
-    :return: Distance between p and q
-    """
-    return abs(p - q)
-
 
 
 def compute_metrics(raw_data, prior_colname, posterior_colname):
@@ -112,19 +26,20 @@ def compute_metrics(raw_data, prior_colname, posterior_colname):
     items['exp_bayes_factor'] = items.apply(lambda x: exp_bayes_factor(x[posterior_colname], x[prior_colname]), axis=1)
     items['posterior_distance'] = items.apply(lambda x: posterior_distance(x[posterior_colname]), axis=1)
     items['prior_posterior_distance'] = items.apply(lambda x: prior_posterior_distance(x[posterior_colname], x[prior_colname]), axis=1)
+    items['kl_beta'] = items.apply(lambda x: kl_dirichlet(x['posterior_beta'], x['prior_beta']), axis=1)
+    items['kl_util_beta'] = items.apply(lambda x: exp(2, kl_dirichlet(x['posterior_beta'], x['prior_beta'])), axis=1)
+    items['entropy_reduction_beta'] = items.apply(lambda x: entropy_reduction_dirichlet(x['prior_beta'], x['posterior_beta']), axis=1)
     return items 
     
 if __name__ == "__main__":
     # Parse command line arguments
     parser = argparse.ArgumentParser()
-    parser.add_argument("--input", help="Relative path to a magpie .csv file containing the raw responses from the participants")
+    parser.add_argument("--input", help="Relative path to a (widened) .csv file containing one set of participant-vignette responses per row")
     parser.add_argument("--output", help="Name of output file")
     args = parser.parse_args()
     # Read filtered data from csv
-    df = pd.read_csv(args.input)
-    # Widen dataframe
-    df = wrangle_data(df)
+    df = pd.read_json(args.input, orient="records", lines=True)
     # Compute predictor metrics
     df = compute_metrics(df, prior_colname='prior_sliderResponse', posterior_colname='posterior_sliderResponse')
     # Get outfile
-    df.to_csv(path_or_buf=args.output)
+    df.to_json(args.output, orient="records", lines=True)
