@@ -25,9 +25,9 @@ df["sliderResponse"] = df["sliderResponse"]/100
 metadata = {}
 
 # Calculate average time
-experiment_duration_mean = df["experiment_duration"].mean() / 60000
-print(f"Average experiment duration: {round(experiment_duration_mean)} minutes")
-metadata["experiment_duration_mean"] = experiment_duration_mean
+experiment_duration_median = df["experiment_duration"].median() / 60000
+print(f"Median experiment duration: {round(experiment_duration_median)} minutes")
+metadata["experiment_duration_median"] = experiment_duration_median
 
 # Number of participants
 n_participants = len(df.submission_id.unique())

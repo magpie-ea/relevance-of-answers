@@ -8,7 +8,7 @@ from scipy.stats import pearsonr
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--results_file", default="../results/pilot/results_processed.jsonl", help="Path to results .csv file")
+    parser.add_argument("--results_file", default="../results/round_1.0/results_processed.jsonl", help="Path to results .csv file")
     parser.add_argument("--output_path", default="plots/corr_plot.", help="Where to save plots to")
     parser.add_argument("--exclude_extremes", action="store_true", help="Exclude non-answers and exhaustive answers, if desired.")
     parser.add_argument("--only_relevance", action="store_true")
@@ -34,9 +34,10 @@ if __name__ == "__main__":
 
     df = df[[m for m in metrics]]
     if args.only_relevance:
-        g = sns.pairplot(df, hue="AnswerCertainty", y_vars=['relevance_sliderResponse'])
+        g = sns.pairplot(df, kind="scatter", hue="AnswerCertainty", y_vars=['relevance_sliderResponse'],
+                         plot_kws={'alpha':0.2}, palette="colorblind", hue_order=["non_answer", "low_certainty", "high_certainty", "exhaustive"], markers=['o', 'v', 'P', 's'])
     else:
-        g = sns.pairplot(df, hue="AnswerCertainty")
+        g = sns.pairplot(df, kind="scatter", hue="AnswerCertainty", plot_kws={'alpha':0.15})
 
     for ax in g.axes.flatten():
 
@@ -46,7 +47,10 @@ if __name__ == "__main__":
     # Annotate with pearson r
     if args.only_relevance:
         for i, m in enumerate(metrics[1:-1]):
-            r, _ = pearsonr(df[m], df["relevance_sliderResponse"])
+            try:
+                r, _ = pearsonr(df[m], df["relevance_sliderResponse"])
+            except ValueError:
+                pass
             ax = g.axes[0, i+1]
             ax.annotate(f'r = {r:.2f}', xy=(.1, .9), xycoords=ax.transAxes)
     else:
