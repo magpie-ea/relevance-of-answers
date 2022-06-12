@@ -294,19 +294,21 @@ results_answer_SC <- tribble(
 # the "group" variable has likely no impact so we can gloss over it.
 # still let's first show a plot that has everything (using "groups") separately
 
-d %>% 
+p_relevant <- d %>% 
   filter(group == "relevant") %>% 
   ggplot(aes(x = `relevance rating`, color = AnswerPolarity, fill = AnswerPolarity)) +
   facet_grid(AnswerCertainty ~ ContextType , scales = "free") +
   geom_density(alpha = 0.3) +
   ggtitle("trigger word: 'relevant'")
 
-d %>% 
+p_helpful <- d %>% 
   filter(group == "helpful") %>% 
   ggplot(aes(x = `relevance rating`, color = AnswerPolarity, fill = AnswerPolarity)) +
   facet_grid(AnswerCertainty ~ ContextType , scales = "free") +
   geom_density(alpha = 0.3) +
   ggtitle("trigger word: 'helpful'")
+
+plot_grid(p_relevant, p_helpful, nrow=1)
 
 
 # d %>% 
@@ -321,39 +323,15 @@ d %>%
 #   geom_density(alpha = 0.4) +
 #   facet_grid(AnswerPolarity~AnswerCertainty, scales = "free" )
 
-p <- ggpairs(iris, aes(color = Species)) + theme_bw()
-for(i in 1:p$nrow) {
-  for(j in 1:p$ncol){
-    p[i,j] <- p[i,j] + 
-      scale_fill_manual(values=c("#00AFBB", "#E7B800", "#FC4E07")) +
-      scale_color_manual(values=c("#00AFBB", "#E7B800", "#FC4E07"))  
-  }
-}
-p
-
-predictiveFactors <- c(
-  "relevance_sliderResponse",
-  "kl",
-  "bayes_factor",
-  "exp_bayes_factor",
-  "entropy_reduction",
-  "prior_posterior_distance"
-)
-
-predFactorMatrix <- d %>% select(all_of(predictiveFactors)) %>% as.matrix()
-
-ggcorr(predFactorMatrix, palette = "RdBu")
-
-p <- ggpairs(d %>% select(all_of(predictiveFactors), AnswerCertainty),
-        aes(color = AnswerCertainty)) + theme_aida()
-for(i in 1:p$nrow) {
-  for(j in 1:p$ncol){
-    p[i,j] <- p[i,j] + 
-      scale_fill_manual( values=project_colors) +
-      scale_color_manual(values=project_colors)  
-  }
-}
-p
+# p <- ggpairs(iris, aes(color = Species)) + theme_bw()
+# for(i in 1:p$nrow) {
+#   for(j in 1:p$ncol){
+#     p[i,j] <- p[i,j] + 
+#       scale_fill_manual(values=c("#00AFBB", "#E7B800", "#FC4E07")) +
+#       scale_color_manual(values=c("#00AFBB", "#E7B800", "#FC4E07"))  
+#   }
+# }
+# p
 
 # # # # # # # # # # # # # # # # # # # # 
 ## analysis (experimental factors) ----
@@ -471,8 +449,8 @@ cellComparisons
 
 #### simple comparison using `BayesFactor` package ----
 
-BFComp <- generalTestBF(relevance_sliderResponse ~ exp_bayes_factor + entropy_reduction + kl, 
-                        data = as.data.frame(d %>% filter(! is.na(kl))))
+BFComp <- generalTestBF(relevance_sliderResponse ~ exp_bayes_factor + entropy_reduction + kl_util, 
+                        data = as.data.frame(d))
 plot(BFComp)
 
 #### model comparison using LOO-CV ----
@@ -520,7 +498,38 @@ loo_compare(
   fit_predFactors_dropBF, 
   fit_predFactors_dropKL 
 )  
-  
+
+# # # # # # # # # # # # # # # # # # # # 
+## exploring different QuaRels ----
+# # # # # # # # # # # # # # # # # # # # 
+
+
+predictiveFactors <- c(
+  "relevance_sliderResponse",
+  "kl",
+  "kl_util",
+  "bayes_factor",
+  "exp_bayes_factor",
+  "entropy_reduction"
+)
+
+predFactorMatrix <- d %>% select(all_of(predictiveFactors)) %>% as.matrix()
+
+ggcorr(predFactorMatrix, palette = "RdBu")
+
+p <- ggpairs(d %>% select(all_of(predictiveFactors), AnswerCertainty),
+        aes(color = AnswerCertainty)) + theme_aida()
+for(i in 1:p$nrow) {
+  for(j in 1:p$ncol){
+    p[i,j] <- p[i,j] + 
+      scale_fill_manual( values=project_colors) +
+      scale_color_manual(values=project_colors)  
+  }
+}
+p
+
+
+
 # d_polUnbalanced <- faintr::politeness %>% filter(! (gender == "F" & context == "pol"))
 # 
 # prior = prior(student_t(1, 0, 10), class = "b")

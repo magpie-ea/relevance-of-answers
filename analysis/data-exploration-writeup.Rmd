@@ -42,6 +42,8 @@ scale_colour_discrete <- function(...) {
 scale_fill_discrete <- function(...) {
   scale_fill_manual(..., values = project_colors)
 } 
+
+rerun_models <- FALSE 
 ```
 
 # Read, inspect & massage the data
@@ -165,7 +167,7 @@ Then we derive some hypotheses about the effect of these manipulations from diff
 
 ## Sanity-checking whether the manipulations were as intended
 
-### Context type
+### Effects of `ContextType` on prior and prior confidence
 
 To check whether the `ContextType` manipulation worked, we compare how participants rated the prior probability of a 'yes' answer under each level of the `ContextType` variable. 
 Concretely, we expect this order of prior ratings for the levels of `ContextType`: negative < neutral < positive.
@@ -183,16 +185,21 @@ d %>% ggplot(aes(x = prior_sliderResponse, color = ContextType, fill = ContextTy
 ```
 
 We dive deeper by fitting a regression model, predicting prior ratings in terms of the `ContextType`.
-Since participants have not seen the answer when they rate the prior probability of a 'yes' answer, this is the only fixed effect we should include here.
+Since participants have not seen the answer when they rate the prior probability of a 'yes' answer, `ContextType` is the only fixed effect we should include here.
 The model also includes the maximal RE structure.
 
 ```{r, results = 'hide'}
-fit_contextType_SC <- brm(
-  prior_sliderResponse ~ ContextType + 
-    (1 + ContextType | StimID) + 
-    (1 + ContextType | submission_id),
-  data = d
-)
+if (rerun_models) {
+  fit_contextType_SC <- brm(
+    prior_sliderResponse ~ ContextType + 
+      (1 + ContextType | StimID) + 
+      (1 + ContextType | submission_id),
+    data = d
+  )
+  saveRDS(fit_contextType_SC, "cachedModels/fit_contextType_SC.Rds")
+} else{
+  fit_contextType_SC <- readRDS("cachedModels/fit_contextType_SC.Rds")
+}
 ```
 
 Our assumption is that prior ratings are higher in contexts classified as 'neutral' than in 'negative' contexts, and yet higher in 'positive' contexts.
@@ -228,13 +235,21 @@ d %>% ggplot(aes(x = prior_confidence, color = ContextType, fill = ContextType))
 To scrutinize the effect of `ContextType` on participants expressed confidence in their prior ratings, we use a similar regression model and gather information about the contrast which -upon visual inspection- seem most likely to be meaningful.
 
 ```{r, results = 'hide'}
-fit_contextType_SC_conf <- brm(
-  prior_confidence ~ ContextType + 
-    (1 + ContextType | StimID) + 
-    (1 + ContextType | submission_id),
-  data = d
-)
+if (rerun_models) {
+  fit_contextType_SC_conf <- brm(
+    prior_confidence ~ ContextType + 
+      (1 + ContextType | StimID) + 
+      (1 + ContextType | submission_id),
+    data = d
+  )
+  saveRDS(fit_contextType_SC_conf, "cachedModels/fit_contextType_SC_conf.Rds")
+} else{
+  fit_contextType_SC_conf <- readRDS("cachedModels/fit_contextType_SC_conf.Rds")
+}
+```
 
+
+```{r, results = 'hide'}
 ContextType_SC_neuVSneg_conf <- 
   compare_groups(
     fit_contextType_SC_conf, 
@@ -270,11 +285,27 @@ The `ContextType` manipulation seems to have worked as expected for the prior ra
 There are also differences in the confidence ratings, with lowest confidence in the 'neutral' contexts (which makes sense), but no indication of a difference between 'negative' having less confidence than 'positive'.
 
 
+#### Further exploration
+
+Finally, this is an interesting plot, showing the relation between prior ratings and prior confidence, also in dependence on `ContextType`.
+We see that, unsurprisingly, the value 0.5 for prior rattings has an exceptional status, attracting a lot of data points from the whole range of prior confidence.
+Ignoring this value, there is a seemingly U-shaped curve, suggesting a trend to be more confident in ratings further away from 0.5.
+[We could speak of **Laplacian confidence**: total confidence that we have absolutely no idea, hence prior=0.5. That level of confidence is not attainable, it seems, for 0.49, unless we'd have very specific information.]
+
+```{r}
+d %>% ggplot(aes(x = prior_sliderResponse, y = prior_confidence, color = ContextType)) +
+  geom_jitter(height = 0.3, width =0, alpha = 0.7) +
+  # geom_point(alpha = 0.7) +
+  xlab("prior rating") +
+  ylab("prior confidence") 
+```
+
+
 ```{r}
 # TODO: [possibly] check if neutral ContextType were rated roughly around 0.5 (I guess visualization above suffices?)
 ```
 
-### Answer polarity & answer certainty
+### Effects of `AnswerPolarity` and `AnswerCertainty` on `beliefChange`
 
 We can define `beliefChange` as the difference between posterior and prior *in the direction expected from the answer's polarity* (posterior belief in 'yes' answer increases for a 'positive' answer when compared with the prior rating, but it decreases for 'negative' answers).
 (Careful: we ignore non-answers (which are categorized as "positive" for technical convenience only).)
@@ -302,14 +333,19 @@ To adress the first issue, whether `beliefChange` is positive for both types of 
 Notice that at the time of answer the questions related to the posterior, participants have not yet seen the question after relevance or helpfulness, so that factor `group` (equivalently: `trigger word`) should be ommitted.
 
 ```{r, results = 'hide'}
-fit_answer_SC <- brm(
-  formula = beliefChange ~ ContextType * AnswerCertainty * AnswerPolarity +
-    (1 + ContextType + AnswerCertainty + AnswerPolarity | StimID) +
-    (1 + ContextType + AnswerCertainty + AnswerPolarity | submission_id),
-  data = d %>% filter(AnswerCertainty != "non_answer") %>% 
-    mutate(beliefChange = posterior_sliderResponse - prior_sliderResponse,
-           beliefChange = ifelse(AnswerPolarity == "positive", beliefChange, - beliefChange))
-)
+if (rerun_models) {
+  fit_answer_SC <- brm(
+    formula = beliefChange ~ ContextType * AnswerCertainty * AnswerPolarity +
+      (1 + ContextType + AnswerCertainty + AnswerPolarity | StimID) +
+      (1 + ContextType + AnswerCertainty + AnswerPolarity | submission_id),
+    data = d %>% filter(AnswerCertainty != "non_answer") %>% 
+      mutate(beliefChange = posterior_sliderResponse - prior_sliderResponse,
+             beliefChange = ifelse(AnswerPolarity == "positive", beliefChange, - beliefChange))
+  )
+  saveRDS(fit_answer_SC, "cachedModels/fit_answer_SC.Rds")
+} else{
+  fit_answer_SC <- readRDS("cachedModels/fit_answer_SC.Rds")
+}
 ```
 
 
@@ -383,32 +419,9 @@ I sum, it seems that the stimuli were adequately created to implement the intend
 
 ## Predicting relevance in terms of the experimental factors
 
-```{r}
-p_relevant <- d %>% 
-  filter(group == "relevant") %>% 
-  ggplot(aes(x = `relevance rating`, color = AnswerPolarity, fill = AnswerPolarity)) +
-  facet_grid(AnswerCertainty ~ ContextType , scales = "free") +
-  geom_density(alpha = 0.3) +
-  ggtitle("trigger word: 'relevant'")
+To see how participants' relevance ratings depend on the experimental manipulations, we run a linear regression model predicting the former in terms of the latter:
 
-p_helpful <- d %>% 
-  filter(group == "helpful") %>% 
-  ggplot(aes(x = `relevance rating`, color = AnswerPolarity, fill = AnswerPolarity)) +
-  facet_grid(AnswerCertainty ~ ContextType , scales = "free") +
-  geom_density(alpha = 0.3) +
-  ggtitle("trigger word: 'helpful'")
-
-plot_grid(p_relevant, p_helpful, nrow=1)
-```
-```{r}
-
-d %>% 
-  ggplot(aes(x = `relevance rating`, color = AnswerPolarity, fill = AnswerPolarity)) +
-  facet_grid(AnswerCertainty ~ ContextType , scales = "free") +
-  geom_density(alpha = 0.3) 
-```
-
-```{r}
+```{r, results = "hide"}
 # I'm ommitting interactions in the REs because of the unbalanced (factorial) design
 # TODO rethink this
 formula = relevance_sliderResponse ~ group * ContextType * AnswerCertainty * AnswerPolarity + 
@@ -418,21 +431,122 @@ formula = relevance_sliderResponse ~ group * ContextType * AnswerCertainty * Ans
 # priors must be specified b/c with improper priors posterior is improper as well
 prior = prior(student_t(1, 0, 1), class = "b")
 
-fit <- brm(
-  formula = formula,  
-  iter = 4000,
-  prior = prior,
-  data = d
-)
+if (rerun_models) {
+  fit <- brm(
+    formula = formula,  
+    iter = 4000,
+    prior = prior,
+    data = d
+  )
+  saveRDS(fit, "cachedModels/fit.Rds")
+} else{
+  fit <- readRDS("cachedModels/fit.Rds")
+}
+```
 
-# main effect of "group" (keyword querried in rating?)
-# not if we allow for REs
+### Can we gloss over the different trigger words?
+
+To simplify analyses, it would be helpful to know whether we can gloss over the `trigger word` manipulation.
+So, does it matter whether participants were asked to rate *relevance* or *helpfulness*?
+
+To start with, let's just look at whether there is a main effect, which there is not (possibly also partially explained away by by-subject random slopes):
+
+```{r, results = "hide"}
+# main effect of "group" ?
 group_main <- compare_groups(
   fit,
   higher = group == "relevant",
   lower  = group == "helpful"
 )
+group_main
+```
 
+Alternatively, we may compare models with and without the `group` factors.
+Starting with simple Bayes factors (no REs):
+
+```{r, results = 'hide'}
+BFComp_group_full <- lmBF(relevance_sliderResponse ~ group * ContextType * AnswerCertainty * AnswerPolarity,
+  data = as.data.frame(d))
+BFComp_group_noGroup <- lmBF(relevance_sliderResponse ~ ContextType * AnswerCertainty * AnswerPolarity,
+  data = as.data.frame(d))
+```
+
+We find that the model without `group` has a Bayes factor of more than 900 in its favor.
+
+```{r, results = 'hide'}
+BFComp_group_noGroup / BFComp_group_full
+```
+
+Finally, let's also compare with LOO cross-validation, running the lesioned model first:
+
+```{r, results = 'hide'}
+if (rerun_models) {
+  fit_noGroup <- brm(
+    formula = relevance_sliderResponse ~ ContextType * AnswerCertainty * AnswerPolarity + 
+      (1 + ContextType + AnswerCertainty + AnswerPolarity | StimID) + 
+      (1 + ContextType + AnswerCertainty + AnswerPolarity | submission_id),  
+    iter = 4000,
+    prior = prior,
+    data = d
+  )
+  saveRDS(fit_noGroup, "cachedModels/fit_noGroup.Rds")
+} else{
+  fit_noGroup <- readRDS("cachedModels/fit_noGroup.Rds")
+}
+
+
+```
+
+And then comparing via LOO:
+
+```{r}
+# add LOO information
+fit <- add_criterion(fit, "loo", model_name = "full")
+fit_noGroup <- add_criterion(fit_noGroup, "loo", model_name = "w/o group")
+
+# compare models by LOO
+loo_compare(
+  fit,   
+  fit_noGroup
+)  
+```
+
+It appears that, when comparing trained models with REs, the leasioned model is slightly better numerically, but not with a margin large enough to strongly prefer it over the full model.
+Nevertheless, we take all of this as an indication that we may proceed (temporarily, in visualizations) with partial neglect of the `trigger word` distinction. 
+
+### Effect of `AnswerPolarity`, `AnswerCertainty` and `ContextType` on relevance ratings
+
+To investigate further which experimental factors influence the ratings of relevance of an answer, start by a visualization:
+
+```{r, echo = F, eval = F}
+# p_relevant <- d %>% 
+#   filter(group == "relevant") %>% 
+#   ggplot(aes(x = `relevance rating`, color = AnswerPolarity, fill = AnswerPolarity)) +
+#   facet_grid(AnswerCertainty ~ ContextType , scales = "free") +
+#   geom_density(alpha = 0.3) +
+#   ggtitle("trigger word: 'relevant'")
+# 
+# p_helpful <- d %>% 
+#   filter(group == "helpful") %>% 
+#   ggplot(aes(x = `relevance rating`, color = AnswerPolarity, fill = AnswerPolarity)) +
+#   facet_grid(AnswerCertainty ~ ContextType , scales = "free") +
+#   geom_density(alpha = 0.3) +
+#   ggtitle("trigger word: 'helpful'")
+# 
+# plot_grid(p_relevant, p_helpful, nrow=1)
+```
+
+```{r}
+d %>% 
+  ggplot(aes(x = `relevance rating`, color = AnswerPolarity, fill = AnswerPolarity)) +
+  facet_grid(AnswerCertainty ~ ContextType , scales = "free") +
+  geom_density(alpha = 0.3) 
+```
+
+Let's now look at a bunch of contrasts (based on the previously fitted full model).
+
+
+```{r, echo = F, results = "hide"}
 ## expected ordering relation?
 ## non-answers vs low-certainty => poster = 1
 nonAns_VS_low  <- compare_groups(
@@ -481,6 +595,32 @@ AnswerPolarity_exhaustive <-compare_groups(
   higher = AnswerPolarity == "negative" & AnswerCertainty == "exhaustive"
 )
 
+ContextType_neutral <- 
+  compare_groups(fit, higher = ContextType == "neutral", lower = ContextType != "neutral")
+
+cellComparisons <- tribble(
+  ~comparison, ~posterior, ~"95%HDI (low)", ~"95%HDI (high)",
+  # "group: helpful < relevance" , group_main$post_prob, group_main$l_ci, group_main$u_ci,  
+  "non-answer < low certainty" , nonAns_VS_low$post_prob, nonAns_VS_low$l_ci, nonAns_VS_low$u_ci,  
+  "low certain < high certain" , low_VS_high$post_prob, low_VS_high$l_ci, low_VS_high$u_ci,  
+  "high certain < exhaustive" , high_VS_exh$post_prob, high_VS_exh$l_ci, high_VS_exh$u_ci,  
+  "answer: pos < neg", AnswerPolarity_main$post_prob, AnswerPolarity_main$l_ci, AnswerPolarity_main$u_ci,
+  # "Polarity (low certain)", AnswerPolarity_lowCertain$post_prob, AnswerPolarity_lowCertain$l_ci, AnswerPolarity_lowCertain$u_ci,
+  # "Polarity (high certain)", AnswerPolarity_highCertain$post_prob, AnswerPolarity_highCertain$l_ci, AnswerPolarity_highCertain$u_ci,
+  # "Polarity (exhaustive)", AnswerPolarity_exhaustive$post_prob, AnswerPolarity_exhaustive$l_ci, AnswerPolarity_exhaustive$u_ci,
+  "context: neutral > pos/neg", ContextType_neutral$post_prob, ContextType_neutral$l_ci, ContextType_neutral$u_ci
+)
+
+cellComparisons
+```
+
+The table shows results indicating that there are (non-surprising) effects of `AnswerType` with non-answers rated as least relevant, followed by low-certainty, then high-certainty answers, and finall exhaustive answers.
+There is no (strong) indication for a main effect of `AnswerPolarity` or `ContextType`.
+The lack of an effect of `ContextType` might be interpreted as *prima facie* evidence in favor of quantitative notions or relevance that do not take the prior into account (at least not very prominently). 
+
+Here is a plot of the relevant posterior draws visually supporting why we compared the three factor levels of `ContextType` in the way we did:
+
+```{r}
 draws_ContextType <- 
   tibble(
     extract_cell_draws(fit, ContextType == "positive", colname = "positive"),
@@ -491,28 +631,8 @@ draws_ContextType <-
 draws_ContextType %>% 
   ggplot(aes(x = value, color = name, fill = name)) +
   geom_density(alpha = 0.3)
-
-ContextType_neutral <- 
-  compare_groups(fit, higher = ContextType == "neutral", lower = ContextType != "neutral")
-
-cellComparisons <- tribble(
-  ~comparison, ~posterior, ~"95%HDI (low)", ~"95%HDI (high)",
-  "helpful < relevance" , group_main$post_prob, group_main$l_ci, group_main$u_ci,  
-  "non-answer < low certainty" , nonAns_VS_low$post_prob, nonAns_VS_low$l_ci, nonAns_VS_low$u_ci,  
-  "low certain < high certain" , low_VS_high$post_prob, low_VS_high$l_ci, low_VS_high$u_ci,  
-  "high certain < exhaustive" , high_VS_exh$post_prob, high_VS_exh$l_ci, high_VS_exh$u_ci,  
-  "positive < negative", AnswerPolarity_main$post_prob, AnswerPolarity_main$l_ci, AnswerPolarity_main$u_ci,
-  # "Polarity (low certain)", AnswerPolarity_lowCertain$post_prob, AnswerPolarity_lowCertain$l_ci, AnswerPolarity_lowCertain$u_ci,
-  # "Polarity (high certain)", AnswerPolarity_highCertain$post_prob, AnswerPolarity_highCertain$l_ci, AnswerPolarity_highCertain$u_ci,
-  # "Polarity (exhaustive)", AnswerPolarity_exhaustive$post_prob, AnswerPolarity_exhaustive$l_ci, AnswerPolarity_exhaustive$u_ci,
-  "Context neutral > pos/neg", ContextType_neutral$post_prob, ContextType_neutral$l_ci, ContextType_neutral$u_ci
-)
-
-cellComparisons
-
-# RESULTS:
-# there is no (strong) indication for a main effect of trigger word, answer polarity or contextual bias
-#   this would speak against KL- and ER-based notions because these do depend on prior
-# there does seem to be an effect of answer type (certainty), but that's predicted on all accounts
 ```
+
+# Exploring QuaRels
+
 
