@@ -271,14 +271,14 @@ The results of these comparisons are summarized here:
 ```{r, echo = F}
 results_ContextType_SanityCheck <- 
   tribble(
-  ~comparison, ~measure, ~posterior, ~"95%HDI (low)", ~"95%HDI (high)",
+  ~comparison, ~measure, ~posterior, ~"95% HDI (low)", ~"95% HDI (high)",
   "negative < neutral" , "prior", ContextType_SC_negVSneu$post_prob, ContextType_SC_negVSneu$l_ci, ContextType_SC_negVSneu$u_ci,  
   "neutral < positive" , "prior", ContextType_SC_neuVSpos$post_prob, ContextType_SC_neuVSpos$l_ci, ContextType_SC_neuVSpos$u_ci,  
   "neutral < negative" , "prior-confidence", ContextType_SC_neuVSneg_conf$post_prob, ContextType_SC_neuVSneg_conf$l_ci, ContextType_SC_neuVSneg_conf$u_ci,  
   "negative < positive" , "prior-confidence", ContextType_SC_negVSpos_conf$post_prob, ContextType_SC_negVSpos_conf$l_ci, ContextType_SC_negVSpos_conf$u_ci,  
   )
 
-results_ContextType_SanityCheck
+knitr::kable(results_ContextType_SanityCheck)
 ```
 
 The `ContextType` manipulation seems to have worked as expected for the prior ratings: lower in 'negative' than in 'neutral' than in 'positive'.
@@ -299,6 +299,17 @@ d %>% ggplot(aes(x = prior_sliderResponse, y = prior_confidence, color = Context
   xlab("prior rating") +
   ylab("prior confidence") 
 ```
+
+We also check this for the posterior:
+
+```{r}
+d %>% ggplot(aes(x = posterior_sliderResponse, y = posterior_confidence, color = ContextType)) +
+  geom_jitter(height = 0.3, width =0, alpha = 0.7) +
+  # geom_point(alpha = 0.7) +
+  xlab("posterior rating") +
+  ylab("posterior confidence") 
+```
+
 
 
 ```{r}
@@ -410,11 +421,35 @@ results_answer_SC <- tribble(
   "high certain vs exh" , "belief change", AnswerCertainty_highVSexh$post_prob, AnswerCertainty_highVSexh$l_ci, AnswerCertainty_highVSexh$u_ci  
 )
 
-results_answer_SC
+knitr::kable(results_answer_SC)
 ```
 
 We see no indication of a main effect of polarity, but find support for the claim that our manipulation of AnswerCertainty induced gradually larger belief changes.
 I sum, it seems that the stimuli were adequately created to implement the intended manipulation in the variables `AnswerCertainty` and `AnswerPolarity`.
+
+
+### Exploring the "no belief change cases"
+
+A "no belief change" case is a trial in which the prior judgement equals the posterior judgement and also the ratings of confidence in each are exactly the same.
+These are expected to happen only for 'non-answers' or for cases where the prior was already extreme (in the direction of the polarity of the answer).
+It should also be checked if individual participants are particularly prone to indicating no belief change at all.
+
+```{r, eval = F}
+d %>% mutate(
+  noBeliefChange = case_when(
+    prior_sliderResponse == posterior_sliderResponse &
+      prior_confidence == posterior_confidence ~ TRUE,
+    TRUE ~ FALSE
+  )
+) %>%
+  select(submission_id, AnswerCertainty, prior_sliderResponse, posterior_sliderResponse ,
+      prior_confidence, posterior_confidence, noBeliefChange) %>% 
+  View()
+```
+
+```{r}
+# TODO check if this looks okay; any individuals particularly prone to no-belief-changes?
+```
 
 
 ## Predicting relevance in terms of the experimental factors
@@ -471,13 +506,38 @@ BFComp_group_noGroup <- lmBF(relevance_sliderResponse ~ ContextType * AnswerCert
   data = as.data.frame(d))
 ```
 
-We find that the model without `group` has a Bayes factor of more than 900 in its favor.
+We find that the model without `group` has a very high Bayes factor in its favor:
 
-```{r, results = 'hide'}
+```{r}
 BFComp_group_noGroup / BFComp_group_full
 ```
 
-Finally, let's also compare with LOO cross-validation, running the lesioned model first:
+This also shows in this plot:
+
+```{r}
+model_names <- c("full", "lesioned")
+
+tibble(
+  full      = BFComp_group_full %>% as.vector(), 
+  lesioned  = BFComp_group_noGroup %>% as.vector(),
+) %>% pivot_longer(everything(), names_to = "model", values_to = "relative_BF") %>% 
+  mutate(
+    # model = fct_reorder(model, relative_BF)
+    model = factor(model, rev(model_names))
+  ) %>% 
+  ggplot(aes(x = model, y = relative_BF)) +
+  scale_y_log10() +
+  geom_col() +
+  coord_flip() +
+  xlab("") +
+  ylab("log BF (relative to intercept only)")
+
+```
+
+
+
+Finally, let's also compare with LOO cross-validation. 
+We first run the lesioned model:
 
 ```{r, results = 'hide'}
 if (rerun_models) {
@@ -493,8 +553,6 @@ if (rerun_models) {
 } else{
   fit_noGroup <- readRDS("cachedModels/fit_noGroup.Rds")
 }
-
-
 ```
 
 And then comparing via LOO:
@@ -511,8 +569,8 @@ loo_compare(
 )  
 ```
 
-It appears that, when comparing trained models with REs, the leasioned model is slightly better numerically, but not with a margin large enough to strongly prefer it over the full model.
-Nevertheless, we take all of this as an indication that we may proceed (temporarily, in visualizations) with partial neglect of the `trigger word` distinction. 
+It appears that, when comparing trained models with REs, the lesioned model is slightly worse numerically, but not with a margin large enough to strongly prefer the full model.
+We take all of this as an indication that we may proceed (temporarily, in visualizations) with partial neglect of the `trigger word` distinction. 
 
 ### Effect of `AnswerPolarity`, `AnswerCertainty` and `ContextType` on relevance ratings
 
@@ -540,13 +598,12 @@ To investigate further which experimental factors influence the ratings of relev
 d %>% 
   ggplot(aes(x = `relevance rating`, color = AnswerPolarity, fill = AnswerPolarity)) +
   facet_grid(AnswerCertainty ~ ContextType , scales = "free") +
-  geom_density(alpha = 0.3) 
+  geom_density(alpha = 0.3) + theme_aida()
 ```
 
 Let's now look at a bunch of contrasts (based on the previously fitted full model).
 
-
-```{r, echo = F, results = "hide"}
+```{r, echo = F}
 ## expected ordering relation?
 ## non-answers vs low-certainty => poster = 1
 nonAns_VS_low  <- compare_groups(
@@ -611,7 +668,7 @@ cellComparisons <- tribble(
   "context: neutral > pos/neg", ContextType_neutral$post_prob, ContextType_neutral$l_ci, ContextType_neutral$u_ci
 )
 
-cellComparisons
+knitr::kable(cellComparisons)
 ```
 
 The table shows results indicating that there are (non-surprising) effects of `AnswerType` with non-answers rated as least relevant, followed by low-certainty, then high-certainty answers, and finall exhaustive answers.
