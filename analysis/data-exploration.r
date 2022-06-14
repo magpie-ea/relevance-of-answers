@@ -447,70 +447,79 @@ cellComparisons
 ## analysis (predictive factors) ----
 # # # # # # # # # # # # # # # # # # # # 
 
-#### simple comparison using `BayesFactor` package ----
+#### correcting calculation of entropy reduction for beta-beliefs ----
 
-BFComp <- generalTestBF(relevance_sliderResponse ~ exp_bayes_factor + entropy_reduction + kl_util, 
-                        data = as.data.frame(d))
-plot(BFComp)
+# It seems that ER Beta is NA whenever at least one of the confidence ratings was 7
+View(d %>% select(
+  entropy_reduction_beta, 
+  prior_sliderResponse, prior_concentration, prior_confidence, 
+  posterior_sliderResponse, posterior_concentration, posterior_confidence,
+  prior_beta_a, prior_beta_b, posterior_beta_a, posterior_beta_b))
+d %>% 
+  mutate(check = is.na(entropy_reduction_beta) == (prior_confidence == 7 | posterior_confidence == 7)) %>% 
+  pull(check) %>% all()
+# so, ER for beta is na if a person was very, very confident
 
-#### model comparison using LOO-CV ----
+# ER values should not be NA when confidence levels are high, but rather just very low
+# therefore, add new ER_beta value (and store individual entropies of prior and posterior along the way)
+get_entropy_beta <- function(a, b) {
+  # alpha is a vector of Dirichlet weights
+  a0 <- a + b
+  entropy <- log((gamma(a) * gamma(b)) / gamma(a0)) +
+    (a0 - 2) * digamma(a0) -
+    (a-1) * digamma(a) - (b-1) * digamma(b)
+  if (!is.finite(entropy) | is.na(entropy)) {
+    return(-5)
+  } else {
+    return(entropy)
+  }
+}
 
-fit_predFactors_all <- brm(
-  relevance_sliderResponse ~ exp_bayes_factor + entropy_reduction + kl,
-  iter = 4000,
-  prior = prior(student_t(1, 0, 5), class = "b"),
-  sample_prior = T,
-  data = d %>% filter(! is.na(kl))
-)
+d <- d %>% 
+  mutate(
+    prior_entropy = map_dbl(1:nrow(d), function(i) get_entropy_beta(d$prior_beta_a[i], d$prior_beta_b[i])),
+    posterior_entropy = map_dbl(1:nrow(d), function(i) get_entropy_beta(d$posterior_beta_a[i], d$posterior_beta_b[i])),
+    ER_beta = abs(prior_entropy - posterior_entropy)
+  )
 
-fit_predFactors_dropKL <- brm(
-  relevance_sliderResponse ~ exp_bayes_factor + entropy_reduction,
-  iter = 4000,
-  prior = prior(student_t(1, 0, 5), class = "b"),
-  sample_prior = T,
-  data = d %>% filter(! is.na(kl))
-)
+# d %>% select(prior_sliderResponse, prior_confidence, posterior_sliderResponse, posterior_confidence,
+#              prior_entropy, posterior_entropy, ER_beta) %>% View()
+# summary(d$ER_beta)
 
-fit_predFactors_dropBF <- brm(
-  relevance_sliderResponse ~ entropy_reduction + kl,
-  iter = 4000,
-  prior = prior(student_t(1, 0, 5), class = "b"),
-  sample_prior = T,
-  data = d %>% filter(! is.na(kl))
-)
+#### adding measure for Bayes factors for  beta-beliefs ----
 
-fit_predFactors_dropER <- brm(
-  relevance_sliderResponse ~ exp_bayes_factor + kl,
-  iter = 4000,
-  prior = prior(student_t(1, 0, 5), class = "b"),
-  sample_prior = T,
-  data = d %>% filter(! is.na(kl))
-)
+# we also want a version of BF for the beta distributions 
+# we can do this by comparing the beta-weights 
+# (corresponding to corrections in the evidence acquired that produced a beta distribution)
 
-fit_predFactors_all    <- add_criterion(fit_predFactors_all, "loo", model_name = "all")
-fit_predFactors_dropER <- add_criterion(fit_predFactors_dropER, "loo", model_name = "dropER")
-fit_predFactors_dropBF <- add_criterion(fit_predFactors_dropBF, "loo", model_name = "dropBF")
-fit_predFactors_dropKL <- add_criterion(fit_predFactors_dropKL, "loo", model_name = "dropKL")
+d <- d %>% 
+  mutate(
+    BF_beta = log(abs(prior_beta_a - posterior_beta_a) + abs(prior_beta_b - posterior_beta_b) + 2),
+    BF_beta = BF_beta / max(BF_beta)
+  )
 
-loo_compare(
-  fit_predFactors_all   ,   
-  fit_predFactors_dropER,
-  fit_predFactors_dropBF, 
-  fit_predFactors_dropKL 
-)  
+#### more uniform names of predictive factors ----
 
-# # # # # # # # # # # # # # # # # # # # 
-## exploring different QuaRels ----
-# # # # # # # # # # # # # # # # # # # # 
+d <- d %>% 
+  mutate(
+    relevance = relevance_sliderResponse,
+    ER = entropy_reduction,
+    KL = kl_util,
+    BF = exp_bayes_factor,
+    KL_beta = kl_util_beta  
+  )
+
+#### correlation plots of experimental measures ----
 
 
 predictiveFactors <- c(
-  "relevance_sliderResponse",
-  "kl",
-  "kl_util",
-  "bayes_factor",
-  "exp_bayes_factor",
-  "entropy_reduction"
+  "relevance",
+  "ER",
+  "KL",
+  "BF",
+  "ER_beta",
+  "KL_beta",
+  "BF_beta"
 )
 
 predFactorMatrix <- d %>% select(all_of(predictiveFactors)) %>% as.matrix()
@@ -527,6 +536,299 @@ for(i in 1:p$nrow) {
   }
 }
 p
+
+d %>% select(predictiveFactors, AnswerCertainty) %>% 
+  pivot_longer(cols = predictiveFactors[2:7], names_to = 'factor', values_to = "value") %>% 
+  mutate(factor = factor(factor, levels = predictiveFactors[2:7])) %>% 
+  ggplot(aes(x = value, y = relevance, color = AnswerCertainty)) +
+  geom_point(alpha = 0.5) +
+  # geom_smooth() +
+  facet_wrap(. ~factor, scales = "free") +
+  theme_aida()
+
+#### single-factor model comparison ----
+
+##### Bayes Factor comparison: single factor models ----
+
+BFComp_rel_KL      <- lmBF(relevance_sliderResponse ~ KL, data = as.data.frame(d))
+BFComp_rel_ER      <- lmBF(relevance_sliderResponse ~ ER, data = as.data.frame(d))
+BFComp_rel_BF      <- lmBF(relevance_sliderResponse ~ BF, data = as.data.frame(d))
+BFComp_rel_KL_beta <- lmBF(relevance_sliderResponse ~ KL_beta, data = as.data.frame(d))
+BFComp_rel_ER_beta <- lmBF(relevance_sliderResponse ~ ER_beta, data = as.data.frame(d))
+BFComp_rel_BF_beta <- lmBF(relevance_sliderResponse ~ BF_beta, data = as.data.frame(d))
+
+model_names <- c("ER", "KL", "BF", "ER_beta", "KL_beta", "BF_beta")
+
+tibble(
+    ER      = BFComp_rel_ER      %>% as.vector(), 
+    KL      = BFComp_rel_KL      %>% as.vector(), 
+    BF      = BFComp_rel_BF      %>% as.vector(), 
+    ER_beta = BFComp_rel_ER_beta %>% as.vector(), 
+    KL_beta = BFComp_rel_KL_beta %>% as.vector(), 
+    BF_beta = BFComp_rel_BF_beta %>% as.vector() 
+  ) %>% pivot_longer(everything(), names_to = "model", values_to = "relative_BF") %>% 
+  mutate(
+    # model = fct_reorder(model, relative_BF)
+    model = factor(model, rev(model_names))
+  ) %>% 
+  ggplot(aes(x = model, y = relative_BF)) +
+  scale_y_log10() +
+  geom_col() +
+  coord_flip() +
+  xlab("") +
+  ylab("log BF (relative to intercept only)")
+
+# RESULTS:
+# Bayes Factors are best (single, linear) predictors
+# KL_beta is second, but BF_beta is a close running-up
+
+##### LOO-CV for single factor models ----
+
+
+# ER
+fit_loo_ER <- brm(
+  relevance_sliderResponse ~ ER,
+  iter = 4000,
+  prior = prior(student_t(1, 0, 25), class = "b"),
+  sample_prior = T,
+  data = d 
+) %>% add_criterion("loo", model_name = "ER")
+
+# KL
+fit_loo_KL <- brm(
+  relevance_sliderResponse ~ KL,
+  iter = 4000,
+  prior = prior(student_t(1, 0, 25), class = "b"),
+  sample_prior = T,
+  data = d 
+) %>% add_criterion("loo", model_name = "KL")
+
+# BF
+fit_loo_BF <- brm(
+  relevance_sliderResponse ~ BF,
+  iter = 4000,
+  prior = prior(student_t(1, 0, 25), class = "b"),
+  sample_prior = T,
+  data = d 
+) %>% add_criterion("loo", model_name = "BF")
+
+# ER_beta
+fit_loo_ER_beta <- brm(
+  relevance_sliderResponse ~ ER_beta,
+  iter = 4000,
+  prior = prior(student_t(1, 0, 25), class = "b"),
+  sample_prior = T,
+  data = d 
+) %>% add_criterion("loo", model_name = "ER_beta")
+
+# KL_beta
+fit_loo_KL_beta <- brm(
+  relevance_sliderResponse ~ KL_beta,
+  iter = 4000,
+  prior = prior(student_t(1, 0, 25), class = "b"),
+  sample_prior = T,
+  data = d 
+) %>% add_criterion("loo", model_name = "KL_beta")
+
+# BF_beta
+fit_loo_BF_beta <- brm(
+  relevance_sliderResponse ~ BF_beta,
+  iter = 4000,
+  prior = prior(student_t(1, 0, 25), class = "b"),
+  sample_prior = T,
+  data = d 
+) %>% add_criterion("loo", model_name = "BF_beta")
+
+loo_compare(
+ fit_loo_ER, 
+ fit_loo_KL, 
+ fit_loo_BF,
+ fit_loo_ER_beta, 
+ fit_loo_KL_beta, 
+ fit_loo_BF_beta
+)
+
+model_names <- c("ER", "KL", "BF", "ER_beta", "KL_beta", "BF_beta")
+tibble(
+  model = factor(model_names, levels = rev(model_names)),
+  ELPD  = c(
+    loo(fit_loo_ER)$estimates['elpd_loo','Estimate'], 
+    loo(fit_loo_KL)$estimates['elpd_loo','Estimate'],
+    loo(fit_loo_BF)$estimates['elpd_loo','Estimate'],
+    loo(fit_loo_ER_beta)$estimates['elpd_loo','Estimate'],  
+    loo(fit_loo_KL_beta)$estimates['elpd_loo','Estimate'], 
+    loo(fit_loo_BF_beta)$estimates['elpd_loo','Estimate'] 
+  ),
+  SE = c(
+    loo(fit_loo_ER)$estimates['elpd_loo','SE'], 
+    loo(fit_loo_KL)$estimates['elpd_loo','SE'],
+    loo(fit_loo_BF)$estimates['elpd_loo','SE'],
+    loo(fit_loo_ER_beta)$estimates['elpd_loo','SE'],  
+    loo(fit_loo_KL_beta)$estimates['elpd_loo','SE'], 
+    loo(fit_loo_BF_beta)$estimates['elpd_loo','SE'] 
+  ),
+  lower = ELPD - SE,
+  upper = ELPD + SE
+) %>% 
+  ggplot(aes( x = model , y = ELPD)) +
+  geom_pointrange(aes(min = lower, max = upper)) +
+  coord_flip() +
+  xlab("") +
+  ylab("expected log likelihood (LOO-CV) ")
+
+#### double-factor model comparison ----
+
+##### Bayes factors for double-factor models ----
+
+BFComp_KL_dbl <- lmBF(relevance_sliderResponse ~ KL * KL_beta, data = as.data.frame(d))
+BFComp_ER_dbl <- lmBF(relevance_sliderResponse ~ ER * ER_beta, data = as.data.frame(d))
+BFComp_BF_dbl <- lmBF(relevance_sliderResponse ~ BF * BF_beta, data = as.data.frame(d))
+
+model_names <- c("ER", "KL", "BF")
+
+tibble(
+  KL      = BFComp_KL_dbl %>% as.vector(), 
+  ER      = BFComp_ER_dbl %>% as.vector(), 
+  BF      = BFComp_BF_dbl %>% as.vector()
+) %>% pivot_longer(everything(), names_to = "model", values_to = "relative_BF") %>% 
+  mutate(
+    # model = fct_reorder(model, relative_BF)
+    model = factor(model, rev(model_names))
+  ) %>% 
+  ggplot(aes(x = model, y = relative_BF)) +
+  scale_y_log10() +
+  geom_col() +
+  coord_flip() +
+  xlab("") +
+  ylab("log BF (relative to intercept only)")
+
+
+##### LOO CV for double-factor models ----
+
+# ER
+fit_loo_ER <- brm(
+  relevance_sliderResponse ~ ER * ER_beta,
+  iter = 4000,
+  prior = prior(student_t(1, 0, 25), class = "b"),
+  sample_prior = T,
+  data = d 
+) %>% add_criterion("loo", model_name = "ER")
+
+# KL
+fit_loo_KL <- brm(
+  relevance_sliderResponse ~ KL * KL_beta,
+  iter = 4000,
+  prior = prior(student_t(1, 0, 25), class = "b"),
+  sample_prior = T,
+  data = d 
+) %>% add_criterion("loo", model_name = "KL")
+
+# BF
+fit_loo_BF <- brm(
+  relevance_sliderResponse ~ BF * BF_beta,
+  iter = 4000,
+  prior = prior(student_t(1, 0, 25), class = "b"),
+  sample_prior = T,
+  data = d 
+) %>% add_criterion("loo", model_name = "BF")
+
+model_names <- c("ER", "KL", "BF")
+
+tibble(
+  model = factor(model_names, levels = rev(model_names)),
+  ELPD  = c(
+    loo(fit_loo_ER)$estimates['elpd_loo','Estimate'], 
+    loo(fit_loo_KL)$estimates['elpd_loo','Estimate'],
+    loo(fit_loo_BF)$estimates['elpd_loo','Estimate']
+  ),
+  SE = c(
+    loo(fit_loo_ER)$estimates['elpd_loo','SE'], 
+    loo(fit_loo_KL)$estimates['elpd_loo','SE'],
+    loo(fit_loo_BF)$estimates['elpd_loo','SE']
+  ),
+  lower = ELPD - SE,
+  upper = ELPD + SE
+) %>% 
+  ggplot(aes( x = model , y = ELPD)) +
+  geom_pointrange(aes(min = lower, max = upper)) +
+  coord_flip() +
+  xlab("") +
+  ylab("expected log likelihood (LOO-CV) ")
+
+#### drop-factor model comparison ----
+
+##### LOO-CV for drop-factor models ----
+
+# TODO add REs
+
+fit_predFactors_all <- brm(
+  relevance_sliderResponse ~ exp_bayes_factor + entropy_reduction + kl_util + ER_beta + kl_util_beta,
+  iter = 4000,
+  prior = prior(student_t(1, 0, 25), class = "b"),
+  sample_prior = T,
+  data = d 
+)
+
+fit_predFactors_dropKL <- brm(
+  relevance_sliderResponse ~ exp_bayes_factor + entropy_reduction + ER_beta + kl_util_beta,
+  iter = 4000,
+  prior = prior(student_t(1, 0, 5), class = "b"),
+  sample_prior = T,
+  data = d
+)
+
+fit_predFactors_dropBF <- brm(
+  relevance_sliderResponse ~ entropy_reduction + kl_util + ER_beta + kl_util_beta,
+  iter = 4000,
+  prior = prior(student_t(1, 0, 5), class = "b"),
+  sample_prior = T,
+  data = d 
+)
+
+fit_predFactors_dropER <- brm(
+  relevance_sliderResponse ~ exp_bayes_factor + kl_util + ER_beta + kl_util_beta,
+  iter = 4000,
+  prior = prior(student_t(1, 0, 5), class = "b"),
+  sample_prior = T,
+  data = d
+)
+
+fit_predFactors_dropERBeta <- brm(
+  relevance_sliderResponse ~ exp_bayes_factor + entropy_reduction + kl_util + kl_util_beta,
+  iter = 4000,
+  prior = prior(student_t(1, 0, 25), class = "b"),
+  sample_prior = T,
+  data = d
+)
+
+fit_predFactors_dropKLBeta <- brm(
+  relevance_sliderResponse ~ exp_bayes_factor + entropy_reduction + kl_util + ER_beta,
+  iter = 4000,
+  prior = prior(student_t(1, 0, 25), class = "b"),
+  sample_prior = T,
+  data = d
+)
+
+
+fit_predFactors_all        <- add_criterion(fit_predFactors_all, "loo", model_name = "all")
+fit_predFactors_dropER     <- add_criterion(fit_predFactors_dropER, "loo", model_name = "dropER")
+fit_predFactors_dropBF     <- add_criterion(fit_predFactors_dropBF, "loo", model_name = "dropBF")
+fit_predFactors_dropKL     <- add_criterion(fit_predFactors_dropKL, "loo", model_name = "dropKL")
+fit_predFactors_dropERBeta <- add_criterion(fit_predFactors_dropERBeta, "loo", model_name = "dropERBeta")
+fit_predFactors_dropKLBeta <- add_criterion(fit_predFactors_dropKLBeta, "loo", model_name = "dropKLBeta")
+
+# output has best model on top
+# difference of below 4 is negligible
+# beyond a difference of 4 the SE estimate is reliable and should be consulted for comparisons
+loo_compare(
+fit_predFactors_all   ,   
+fit_predFactors_dropER,
+fit_predFactors_dropBF, 
+fit_predFactors_dropKL,
+fit_predFactors_dropERBeta,
+fit_predFactors_dropKLBeta
+)  
+
 
 
 
