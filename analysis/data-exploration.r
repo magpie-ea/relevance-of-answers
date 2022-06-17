@@ -450,14 +450,14 @@ cellComparisons
 #### correcting calculation of entropy reduction for beta-beliefs ----
 
 # It seems that ER Beta is NA whenever at least one of the confidence ratings was 7
-View(d %>% select(
-  entropy_reduction_beta, 
-  prior_sliderResponse, prior_concentration, prior_confidence, 
-  posterior_sliderResponse, posterior_concentration, posterior_confidence,
-  prior_beta_a, prior_beta_b, posterior_beta_a, posterior_beta_b))
-d %>% 
-  mutate(check = is.na(entropy_reduction_beta) == (prior_confidence == 7 | posterior_confidence == 7)) %>% 
-  pull(check) %>% all()
+# View(d %>% select(
+#   entropy_reduction_beta, 
+#   prior_sliderResponse, prior_concentration, prior_confidence, 
+#   posterior_sliderResponse, posterior_concentration, posterior_confidence,
+#   prior_beta_a, prior_beta_b, posterior_beta_a, posterior_beta_b))
+# d %>% 
+#   mutate(check = is.na(entropy_reduction_beta) == (prior_confidence == 7 | posterior_confidence == 7)) %>% 
+#   pull(check) %>% all()
 # so, ER for beta is na if a person was very, very confident
 
 # ER values should not be NA when confidence levels are high, but rather just very low
@@ -889,3 +889,89 @@ fit_predFactors_dropKLBeta
 #   geom_point()
 #   
 # 
+
+
+## extra plots for presentation ----
+
+a_prior = 3
+b_prior = 3
+
+a_post = 18
+b_post = 6
+
+probability_yes <- function(a,b) {
+  # probability of a 'yes' answer given beta-binomial weights 'a' and 'a'
+  beta(a+1, b) / beta(a,b)
+}
+
+probability_yes(a_prior,b_prior)
+probability_yes(a_post,b_post)
+
+# base-level belief dynamics
+tribble(
+  ~distribution, ~answer, ~probability,
+  "prior", "yes", probability_yes(a_prior,b_prior),
+  "prior", "no", 1-probability_yes(a_prior,b_prior),
+  "posterior", "yes", probability_yes(a_post,b_post),
+  "posterior", "no", 1-probability_yes(a_post,b_post)
+) %>% 
+  mutate(distribution = factor(distribution, levels = c("prior", "posterior"))) %>% 
+  ggplot(aes(x = answer, y = probability, fill = answer)) +
+  geom_col() +
+  facet_grid(.~distribution) +
+  ylim(0,1)
+ 
+
+# higher-order belief dynamics
+tibble(
+  x = seq(0,1, length.out = 1000),
+  prior = dbeta(x, a_prior, b_prior),
+  posterior = dbeta(x, a_post, b_post),
+) %>% 
+  pivot_longer(cols = c("prior", "posterior"), names_to = "distribution", values_to = "probability") %>% 
+  mutate(distribution = factor(distribution, levels = c("prior", "posterior"))) %>% 
+  ggplot(aes(x = x, y = probability)) +
+  geom_line() +
+  facet_grid(.~distribution) +
+  xlab("probabitliy of 'yes' answer")
+
+## explore bad seeds ----
+
+# which items did BF get wrong?
+
+# where is the discrepancy between BF and relevance the largest?
+d %>% mutate(BF_error = relevance_sliderResponse - BF) %>% 
+  arrange(BF_error) %>% View()
+
+# BF seems to have difficulty with "low_certainty" answers which seem to score high in relevance but low in BF
+d %>% 
+  filter(
+    AnswerCertainty == "low_certainty",
+    BF > 0,
+    BF < 0.25,
+    relevance_sliderResponse > 0.5
+  ) %>% 
+  select(submission_id, StimID, group, ContextType, AnswerCertainty, AnswerPolarity, prior_sliderResponse, prior_confidence, 
+         posterior_sliderResponse, posterior_confidence, `relevance rating`, BF) %>% 
+  View()
+
+# pull example submission_id == 3419, StimId == 6, low_certain, positive context, negative answer
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+
+
+
+
+
+
+
+ 
