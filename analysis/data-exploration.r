@@ -1,6 +1,6 @@
 library(tidyverse)
 library(tidyjson)
-# library(GGally)
+library(GGally)
 library(cowplot)
 library(BayesFactor)
 library(brms)
@@ -495,8 +495,15 @@ d <- d %>%
 d <- d %>% 
   mutate(
     BF_beta = log(abs(prior_beta_a - posterior_beta_a) + abs(prior_beta_b - posterior_beta_b) + 2),
-    BF_beta = BF_beta / max(BF_beta)
+    BF_beta = BF_beta / max(BF_beta),
+    # the analytically correct computation of higher-order Bayes factors should actually be this
+    # TODO run analyses with this measure as well
+    BF_beta_precise = abs(log(posterior_beta_a / posterior_beta_b * prior_beta_b / prior_beta_a))
   )
+
+d %>% ggplot(aes(x = BF_beta, y = BF_beta_precise)) +
+  geom_point() + geom_smooth()
+
 
 #### more uniform names of predictive factors ----
 
@@ -519,7 +526,8 @@ predictiveFactors <- c(
   "BF",
   "ER_beta",
   "KL_beta",
-  "BF_beta"
+  "BF_beta",
+  "BF_beta_precise"
 )
 
 predFactorMatrix <- d %>% select(all_of(predictiveFactors)) %>% as.matrix()
@@ -538,8 +546,8 @@ for(i in 1:p$nrow) {
 p
 
 d %>% select(predictiveFactors, AnswerCertainty) %>% 
-  pivot_longer(cols = predictiveFactors[2:7], names_to = 'factor', values_to = "value") %>% 
-  mutate(factor = factor(factor, levels = predictiveFactors[2:7])) %>% 
+  pivot_longer(cols = predictiveFactors[2:8], names_to = 'factor', values_to = "value") %>% 
+  mutate(factor = factor(factor, levels = predictiveFactors[2:8])) %>% 
   ggplot(aes(x = value, y = relevance, color = AnswerCertainty)) +
   geom_point(alpha = 0.5) +
   # geom_smooth() +
@@ -556,6 +564,7 @@ BFComp_rel_BF      <- lmBF(relevance_sliderResponse ~ BF, data = as.data.frame(d
 BFComp_rel_KL_beta <- lmBF(relevance_sliderResponse ~ KL_beta, data = as.data.frame(d))
 BFComp_rel_ER_beta <- lmBF(relevance_sliderResponse ~ ER_beta, data = as.data.frame(d))
 BFComp_rel_BF_beta <- lmBF(relevance_sliderResponse ~ BF_beta, data = as.data.frame(d))
+BFComp_rel_BF_beta_precise <- lmBF(relevance_sliderResponse ~ BF_beta_precise, data = as.data.frame(d))
 
 model_names <- c("ER", "KL", "BF", "ER_beta", "KL_beta", "BF_beta")
 
@@ -956,22 +965,3 @@ d %>%
   View()
 
 # pull example submission_id == 3419, StimId == 6, low_certain, positive context, negative answer
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-
-
-
-
-
-
-
- 
