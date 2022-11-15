@@ -40,22 +40,39 @@ def bayes_factor(p, q):
     :return: absolute value of log of bayes factor
     """
     if p == 1 and q == 1 or p == 0 and q == 0:
-        return 0
+        return 1
     else:
-        return abs(np.log10((np.float64(p) / (1-p)) * (np.float64(1-q) / q)))
+        return (np.float64(p) / (1-p)) * (np.float64(1-q) / q)
 
-
-def exp_bayes_factor(p, q):
+def log_bayes_factor(p, q):
     """
     :param p: posterior
     :param q: prior
-    :return: expontential transformation of absolute value of log of bayes factor
-    TODO: Find simpler closed form
+    :return: absolute value of log of bayes factor
     """
     if p == 1 and q == 1 or p == 0 and q == 0:
         return 0
     else:
-        return exp10(abs(np.log10((np.float64(p) / (1-p)) * (np.float64(1-q) / q))))
+        return abs(np.log10(bayes_factor(p, q)))
+
+def bf_utility_polar(p, q):
+    if p < q:
+        p = 1 - p
+        q = 1 - q
+    return 1 - bayes_factor(p, q)
+
+# def exp_bayes_factor(p, q):
+#     """
+#     :param p: posterior
+#     :param q: prior
+#     :return: expontential transformation of absolute value of log of bayes factor
+#     NOTE: See simpler closed form above
+#     """
+    # if p == 1 and q == 1 or p == 0 and q == 0:
+    #     return 0
+    # else:
+    #     return exp10(abs(np.log10((np.float64(p) / (1-p)) * (np.float64(1-q) / q))))
+
 
 
 def posterior_distance(p):
