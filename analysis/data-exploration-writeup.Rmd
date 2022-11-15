@@ -122,7 +122,7 @@ list(
 )
 ```
 
-For convenience, a bit of renaming and releveling:
+For convenience, a bit of renaming and re-leveling:
 
 ```{r }
 d <- d %>% 
