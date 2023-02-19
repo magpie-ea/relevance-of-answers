@@ -1,12 +1,6 @@
 import numpy as np
 import pandas as pd
 import argparse
-from scipy.stats import entropy
-# from analysis.metrics import *
-
-
-# This script takes the output from make_results_df.py
-# Reshape dataframe and compute metrics: KL Utility, ER, and Bayes Factor
 
 
 def wrangle_data(df_long, aggregrate_participants=False, aggregate_group=False):

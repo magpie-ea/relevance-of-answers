@@ -56,10 +56,41 @@ def log_bayes_factor(p, q):
         return abs(np.log10(bayes_factor(p, q)))
 
 def bf_utility_polar(p, q):
-    if p < q:
+    """
+    :param p: posterior
+    :param q: prior
+    """
+    if p > q:
         p = 1 - p
         q = 1 - q
     return 1 - bayes_factor(p, q)
+
+def bf_utility_multi_avg(p_list, q_list):
+    """
+    Note: This equals bf_utility_polar for 2-alt questions, but doesn't work when there are >2 alts.
+    For example, if the i^{th} alternative is always 0, that still brings down the average.
+    :param p_list:
+    :param q_list:
+    :return:
+    """
+    utils = []
+    for p, q in zip(p_list, q_list):
+        utils.append(bf_utility_polar(p, q))
+    return np.mean(utils)
+
+def bf_utility_multi_weighted_avg(p_list, q_list):
+    """
+    Note:
+    :param p_list:
+    :param q_list:
+    :return:
+    """
+    utils = []
+    for p, q in zip(p_list, q_list):
+        utils.append(p * bf_utility_polar(p, q))
+    return sum(utils)
+
+
 
 # def exp_bayes_factor(p, q):
 #     """

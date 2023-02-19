@@ -43,3 +43,17 @@ node_modules
 
 # intellij files
 .idea
+*__pycache__*
+
+# files with xx in them
+*xx*
+
+# Rmd files
+analysis/data-exploration-writeup_cache
+analysis/data-exploration-writeup_files
+
+# Plots
+*.png
+
+# beta-testing results
+results/beta

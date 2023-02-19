@@ -314,6 +314,19 @@ d %>% ggplot(aes(x = posterior_sliderResponse,
   ylab("posterior confidence") 
 ```
 
+Visually, it seems there is a strong correlation between the "extremeness" of the probability and confidence rating. To visualize this, we can transform probability into absolute distance from 0.5.
+
+```{r}
+d$prior_distance <- 2 * abs(0.5 - d$prior_sliderResponse)
+d %>% ggplot(aes(x = prior_distance, 
+                 y = prior_confidence, 
+                 color = ContextType)) +
+  geom_jitter(height = 0.1, width =0, alpha = 0.7) +
+  # geom_point(alpha = 0.7) +
+  xlab("Extremeness of prior probability (2*|prior-0.5|)") +
+  ylab("Prior confidence") 
+```
+
 ### Effects of `AnswerPolarity` and `AnswerCertainty` on `beliefChange`
 
 We can define `beliefChange` as the difference between posterior and prior *in the direction expected from the answer's polarity* (posterior belief in 'yes' answer increases for a 'positive' answer when compared with the prior rating, but it decreases for 'negative' answers). (Careful: we ignore non-answers (which are categorized as "positive" for technical convenience only).) If our manipulation worked, we expect the following for both 'positive' and 'negative' polarity:
@@ -446,6 +459,22 @@ d %>% mutate(
 ```{r}
 # TODO this code is currently not executed, because the output is quite large
 # TODO check if this looks okay; any individuals particularly prone to no-belief-changes?
+```
+
+Here we view how ofte
+
+```{r}
+d %>% mutate(
+  noBeliefChange = case_when(
+    prior_sliderResponse == posterior_sliderResponse &
+    prior_confidence == posterior_confidence ~ TRUE,
+    TRUE ~ FALSE
+  )
+) %>% select(
+  submission_id, noBeliefChange
+) %>% pivot_wider(
+  values_from=noBeliefChange, names_from=submission_id, values_fn=mean
+) %>% as.numeric() %>% hist()
 ```
 
 ## Predicting relevance in terms of the experimental factors
@@ -747,7 +776,7 @@ $$
 \underbrace{\frac{q}{1-q}}_{\mathrm{posterior\ odds}} = \underbrace{b}_{\mathrm{Bayes\ factor}} \ \underbrace{\frac{p}{1-p}}_{\mathrm{prior\ odds}}
 $$
 
-This maps onto the usual definition of the Bayes factor by mapping the model $M_1$ onto the categorical belief that the positive answer is true, and $M_2$ to a model which categorically assumes that the negative answer is false. Or, in other words, the first-order case allows us to map the prior and posterior beliefs directly onto an odds-form, so that we can directly quantify a measure of change induced by some observation in terms of the product:
+This maps onto the usual definition of the Bayes factor by mapping the model $M_1$ onto the categorical belief that the positive answer is true, and $M_2$ to a model which categorically assumes that the negative answer is true. Or, in other words, the first-order case allows us to map the prior and posterior beliefs directly onto an odds-form, so that we can directly quantify a measure of change induced by some observation in terms of the product:
 
 $$
 b = \frac{q}{1-q} \frac{1-p}{p}
@@ -763,20 +792,17 @@ We could try to use the same approach as for first-order beliefs, just using the
 
 $$
 b = \frac{b_{prior}}{a_{prior}} \ \frac{a_{posterior}}{b_{posterior}}
-$$
-However, it is clear that is is *not* what we want, because it would five us a neutral BF value of 1 whenever, for example, only the higher-order uncertainty shrinks while the expected values stay the same.
+$$ However, it is clear that is is *not* what we want, because it would five us a neutral BF value of 1 whenever, for example, only the higher-order uncertainty shrinks while the expected values stay the same.
 
 #### BF beta from sampling
 
-The previous approach missed to bring the uncertainty in a beta belief to bear on the definition of our BF-like concept. 
-We can get that back and stay true to the original first-order definition if we integrate: where previously we only had one true answer probability $p$, we now want to use samples from prior and posterior (to approximate the integrals over).
-Concretely, we calculate the expectation of (the log of (because otherwise otherwise we cannot reasonably calculate a mean)):
+The previous approach missed to bring the uncertainty in a beta belief to bear on the definition of our BF-like concept. We can get that back and stay true to the original first-order definition if we integrate: where previously we only had one true answer probability $p$, we now want to use samples from prior and posterior (to approximate the integrals over). Concretely, we calculate the expectation of (the log of (because otherwise otherwise we cannot reasonably calculate a mean)):
 
 $$b = \frac{q}{1-q}\frac{1-p}{p}$$
 
-for samples $p \sim Beta(a_{posterior},b_{posterior})$ and $q \sim Beta(a_{posterior},b_{posterior})$.
+for samples $p \sim Beta(a_{prior},b_{prior})$ and $q \sim Beta(a_{posterior},b_{posterior})$.
 
-In the implementation I'm currently using another log-transform (b/c of increased fit to the data). 
+In the implementation I'm currently using another log-transform (b/c of increased fit to the data).
 
 ```{r}
 
