@@ -563,7 +563,7 @@ d %>% mutate(
 # TODO check if this looks okay; any individuals particularly prone to no-belief-changes?
 ```
 
-Here we view how ofte
+Here we view how often ...
 
 ```{r}
 d %>% mutate(
