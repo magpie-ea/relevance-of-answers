@@ -5,5 +5,5 @@ export default {
   completionUrl: 'https://app.prolific.co/submissions/complete?cc=5FACA08D',
   contactEmail: 'alexwarstadt@gmail.com',
   // Either 'debug', 'directLink' or 'prolific'
-  mode: 'debug'
+  mode: 'prolific'
 };

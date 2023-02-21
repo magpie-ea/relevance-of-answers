@@ -26,6 +26,9 @@ library(brms)
 library(aida)   # custom helpers: https://github.com/michael-franke/aida-package
 library(faintr) # custom helpers: https://michael-franke.github.io/faintr/index.html
 
+source('xx-faintr_functions.R')
+source('xx-faintr_helpers.R')
+
 # these options help Stan run faster
 options(mc.cores = parallel::detectCores())
 
@@ -102,7 +105,7 @@ list(
   "relevance_sliderResponse" = "slider rating indicating how 'relevant' or 'helpful' the answer was (trigger word depends on 'group' variable)",
   "prior_concentration" = "inferred concetration parameter of a beta distribution representing the participants prior and prior confidence ratings",
   "posterior_concentration" = "inferred concetration parameter of a beta distribution representing the participants posterior and posterior confidence ratings",
-  "kl = KL divergence from posterior (true distribution) to prior (approximate distribution)",
+  "kl" = "KL divergence from posterior (true distribution) to prior (approximate distribution)",
   "kl_util" = "scaled KL divergence as 1 - (10^{-kl})",
   "entropy_reduction" = "abs(Entropy(prior) - Entropy(posterior))",
   "bayes_factor" = "abs(log(BF)) where BF is the Bayes factor, computed as posterior-odds / prior-odds (based on ratings given for prior and posterior)",
@@ -309,7 +312,18 @@ d %>% ggplot(aes(x = posterior_sliderResponse, y = posterior_confidence, color =
   xlab("posterior rating") +
   ylab("posterior confidence") 
 ```
+How does the change in confidence relate to the change in extremity? We use "extremity" to refer to the distance of the probability judgment from 0.5.
 
+```{r}
+d$extremity_delta <- abs(0.5 - d$posterior_sliderResponse) - abs(0.5 - d$prior_sliderResponse)
+d$confidence_delta <- d$posterior_confidence - d$prior_confidence
+d %>% ggplot(aes(x = extremity_delta, y = confidence_delta, color = ContextType)) +
+  geom_jitter(height = 0.3, width =0, alpha = 0.7) +
+  # geom_point(alpha = 0.7) +
+  xlab("change in extremity (distance from 0.5) from prior to posterior") +
+  ylab("change in posterior confidence") 
+```
+The general trend is as expected: If the posterior probability is more extreme than the prior, the confidence judgment also tends to be high. Upon visual inspection, the relationship seems fairly linear. However, in the minority of cases where extremity decreases substantially (these are cases where one had an overly confident prior), the confidence rating does not decrease as much as expected given a linear trend. One interpretation of this is that there is a slight bias towards increasing confidence from prior to posterior, independent of the change in extremity of the probability. That is, more information tends to make people more confident in their probability estimates, even if it makes them less confident in the actual answer.
 
 
 ```{r}

@@ -8,8 +8,8 @@ parser.add_argument("--output", help="Name of output file")
 parser.add_argument("--pilot", action="store_true", help="Does the data include pilot data? Some pre-processing is necessary to address inconsistencies.")
 args = parser.parse_args()
 
-PASS_THRESHOLD = 0.75
-
+ATTENTION_PASS_THRESHOLD = 1
+REASONING_PASS_THRESHOLD = 0.75
 
 
 
@@ -36,7 +36,7 @@ metadata["n_participants"] = n_participants
 
 # Quality checks
 df_qual = pd.DataFrame(index=df.submission_id.unique())
-for trial_type in ["attention", "reasoning"]:
+for trial_type, threshold in zip(["attention", "reasoning"], [ATTENTION_PASS_THRESHOLD, REASONING_PASS_THRESHOLD]):
     df_tmp = df[df["TrialType"] == trial_type][["submission_id",
                                                 "p_min", "p_max", "sliderResponse",
                                                 "certainty_max", "certainty_min", "confidence"]]
@@ -47,7 +47,7 @@ for trial_type in ["attention", "reasoning"]:
     print(f"{trial_type} scores:")
     print(df_tmp[0].value_counts())
     print()
-    df_qual = df_qual.assign(**{trial_type: df_tmp[0].apply(lambda x: x >= PASS_THRESHOLD)})
+    df_qual = df_qual.assign(**{trial_type: df_tmp[0].apply(lambda x: x >= threshold)})
 df_qual["pass"] = df_qual.apply(lambda submission_id: submission_id["attention"] and submission_id["reasoning"], axis=1)    # Define some passing criterion: Right now, it's just both attention and reasoning criteria were passed independently
 df = df.join(df_qual[["pass"]], on="submission_id")
 

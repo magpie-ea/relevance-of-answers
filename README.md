@@ -10,5 +10,5 @@ To run the experiment locally, run `npm run serve`
 
 A live version is here: [https://magpie3-relevance-answers.netlify.app/](https://magpie3-relevance-answers.netlify.app/)
 
-
+For detailed information about each subpart of the project, consult the `README.md` file contained in each subdirectory. 
 
