@@ -51,7 +51,7 @@ scale_fill_discrete <- function(...) {
 
 ##################################################
 
-rerun_models <- FALSE 
+rerun_models <- FALSE
 
 ```
 
@@ -156,6 +156,108 @@ Number of participants:
 # 71 subjects after cleaning
 d %>% pull(submission_id) %>% unique() %>% length()
 
+```
+
+# Additional data cleaning
+
+## "Task-sensitivity" of participants and items
+
+Determine "task sensitivity" of participants and items:
+
+```{r}
+# Adding information on "task sensitivity" for participants and per items:
+# - a trial counts as "deviant" iff there is no change in belief for a proper answer
+# - "no change in belief" means less change in prior->posterior than 0.05 AND no difference in confidence ratings
+# - task sensitivity is the proportion of non-deviant trials (either per participant or per item)
+d <- d |> as_tibble() |> 
+  mutate(answer_class  = ifelse(AnswerCertainty != "non_answer", "answer", "non_answer"),
+         belief_change = abs(prior_sliderResponse - posterior_sliderResponse) >= 0.05 | prior_confidence != posterior_confidence,
+         deviant = case_when(answer_class == "answer" ~ !belief_change,
+                             answer_class != "answer" ~  FALSE)
+         ) |> 
+  group_by(submission_id) |> 
+  mutate(task_sensitivity_participant = 1- sum(deviant) / sum(answer_class == "answer")) |> 
+  ungroup() |> 
+  group_by(StimID) |> 
+  mutate(task_sensitivity_item = 1 - sum(deviant) / sum(answer_class == "answer")) |> 
+  ungroup() |> 
+  select(-answer_class, -belief_change, -deviant)
+
+# d |> select(submission_id, task_sensitivity_participant) |> unique() |> arrange(task_sensitivity_participant, -submission_id) |> View()
+```
+
+
+Here are the results for participants:
+
+```{r}
+# plotting task-sensitivity for participants
+d |> 
+  group_by(submission_id) |> 
+  mutate(
+    task_sensitivty = task_sensitivity_participant
+    ) |> 
+  arrange(-task_sensitivty) |> 
+  ungroup() |> 
+  mutate(submission_id = str_c(submission_id, " (", round(task_sensitivity_participant,2), ")") |> as_factor() |> 
+           fct_reorder(task_sensitivty),
+         ) |> 
+  ggplot(aes(x = prior_sliderResponse, y = posterior_sliderResponse, color = 1- relevance_sliderResponse)) +
+  geom_point() +
+  geom_errorbar(aes(xmin = prior_sliderResponse - (7-prior_confidence)/24,
+                    xmax = prior_sliderResponse + (7-prior_confidence)/24)) +
+  geom_errorbar(aes(ymin = posterior_sliderResponse - (7-posterior_confidence)/24,
+                    ymax = posterior_sliderResponse + (7-posterior_confidence)/24)
+                ) +
+  geom_abline(aes(intercept =0, slope = 1), color = project_colors[1]) +
+  xlim(-0.2,1.2) + ylim(-0.2,1.) +
+  facet_wrap(.~ submission_id, nrow = 8)
+```
+
+Here are the results for items:
+
+```{r}
+# plotting task-sensitivity for items
+d |> 
+  mutate(answer = str_c(AnswerCertainty, ":", AnswerPolarity)) |> 
+  group_by(StimID) |> 
+  mutate(
+    task_sensitivty = task_sensitivity_item
+    ) |> 
+  arrange(-task_sensitivty) |> 
+  ungroup() |> 
+  mutate(StimID = str_c(StimID, " (", round(task_sensitivity_item,2), ")") |> as_factor() |> 
+           fct_reorder(task_sensitivty)) |> 
+  ggplot(aes(x = prior_sliderResponse, y = posterior_sliderResponse, color = 1- relevance_sliderResponse, shape = group)) +
+  geom_point(size = 2) +
+  geom_errorbar(aes(xmin = prior_sliderResponse - (7-prior_confidence)/24,
+                    xmax = prior_sliderResponse + (7-prior_confidence)/24)) +
+  geom_errorbar(aes(ymin = posterior_sliderResponse - (7-posterior_confidence)/24,
+                    ymax = posterior_sliderResponse + (7-posterior_confidence)/24)
+                ) +
+  geom_abline(aes(intercept =0, slope = 1), color = project_colors[1]) +
+  xlim(-0.2,1.2) + ylim(-0.2,1.) +
+  facet_grid(answer ~ StimID)
+```
+
+Based on this measure and the following plot, it seems reasonable to exclude participants with task sensitivity of 0.75 or lower.
+There don't seem to be any particularly troublesome items, though.
+
+
+```{r}
+# excluding participants based on insufficient "task sensitivity"
+d <- d |> filter(task_sensitivity_participant > 0.75) 
+```
+
+## Zero-one inflation in slider ratings?
+
+Investigating zero-one inflation in slider responses ... doesn't seem to be an issue!
+
+```{r}
+d |> ggplot(aes(x = prior_sliderResponse)) +
+  geom_histogram(bins = 60)
+d |> ggplot(aes(x = posterior_sliderResponse)) +
+  geom_histogram(bins = 60) + 
+  facet_grid(ContextType ~ AnswerPolarity)
 ```
 
 # Exploring the effect of the experimental factors
@@ -361,12 +463,12 @@ We check if inferred cell means are credibly bigger than zero, for all six relev
 ```{r}
 # 1. Check if belief change in each cell is bigger than zero
 cellDraws_answers <- tibble(
-  extract_cell_draws(fit_answer_SC, AnswerCertainty == "low_certainty" & AnswerPolarity == "positive", "low_pos"),
-  extract_cell_draws(fit_answer_SC, AnswerCertainty == "high_certainty" & AnswerPolarity == "positive", "high_pos"),
-  extract_cell_draws(fit_answer_SC, AnswerCertainty == "exhaustive"    & AnswerPolarity == "positive", "exh_pos"),
-  extract_cell_draws(fit_answer_SC, AnswerCertainty == "low_certainty" & AnswerPolarity == "negative", "low_neg"),
-  extract_cell_draws(fit_answer_SC, AnswerCertainty == "high_certainty" & AnswerPolarity == "negative", "high_neg"),
-  extract_cell_draws(fit_answer_SC, AnswerCertainty == "exhaustive"    & AnswerPolarity == "negative", "exh_neg")
+  low_pos  = extract_cell_draws(fit_answer_SC, AnswerCertainty == "low_certainty"  & AnswerPolarity == "positive", "low_pos")$low_pos,
+  high_pos = extract_cell_draws(fit_answer_SC, AnswerCertainty == "high_certainty" & AnswerPolarity == "positive", "high_pos")$high_pos,
+  exh_pos  = extract_cell_draws(fit_answer_SC, AnswerCertainty == "exhaustive"     & AnswerPolarity == "positive", "exh_pos")$exh_pos,
+  low_neg  = extract_cell_draws(fit_answer_SC, AnswerCertainty == "low_certainty"  & AnswerPolarity == "negative", "low_neg")$low_neg,
+  high_neg = extract_cell_draws(fit_answer_SC, AnswerCertainty == "high_certainty" & AnswerPolarity == "negative", "high_neg")$high_neg,
+  exh_neg  = extract_cell_draws(fit_answer_SC, AnswerCertainty == "exhaustive"     & AnswerPolarity == "negative", "exh_neg")$exh_neg
 ) 
 
 # all posterior 95% HDIs are wayquire above 0 
@@ -679,9 +781,9 @@ Here is a plot of the relevant posterior draws visually supporting why we compar
 ```{r}
 draws_ContextType <- 
   tibble(
-    extract_cell_draws(fit, ContextType == "positive", colname = "positive"),
-    extract_cell_draws(fit, ContextType == "negative", colname = "negative"),
-    extract_cell_draws(fit, ContextType == "neutral", colname = "neutral")
+    positive = extract_cell_draws(fit, ContextType == "positive", colname = "positive")$positive,
+    negative = extract_cell_draws(fit, ContextType == "negative", colname = "negative")$negative,
+    neutral = extract_cell_draws(fit, ContextType == "neutral", colname = "neutral")$neutral
   ) %>% pivot_longer(cols = everything())
 
 draws_ContextType %>% 
@@ -763,20 +865,17 @@ We could try to use the same approach as for first-order beliefs, just using the
 
 $$
 b = \frac{b_{prior}}{a_{prior}} \ \frac{a_{posterior}}{b_{posterior}}
-$$
-However, it is clear that is is *not* what we want, because it would five us a neutral BF value of 1 whenever, for example, only the higher-order uncertainty shrinks while the expected values stay the same.
+$$ However, it is clear that is is *not* what we want, because it would five us a neutral BF value of 1 whenever, for example, only the higher-order uncertainty shrinks while the expected values stay the same.
 
 #### BF beta from sampling
 
-The previous approach missed to bring the uncertainty in a beta belief to bear on the definition of our BF-like concept. 
-We can get that back and stay true to the original first-order definition if we integrate: where previously we only had one true answer probability $p$, we now want to use samples from prior and posterior (to approximate the integrals over).
-Concretely, we calculate the expectation of (the log of (because otherwise otherwise we cannot reasonably calculate a mean)):
+The previous approach missed to bring the uncertainty in a beta belief to bear on the definition of our BF-like concept. We can get that back and stay true to the original first-order definition if we integrate: where previously we only had one true answer probability $p$, we now want to use samples from prior and posterior (to approximate the integrals over). Concretely, we calculate the expectation of (the log of (because otherwise otherwise we cannot reasonably calculate a mean)):
 
 $$b = \frac{q}{1-q}\frac{1-p}{p}$$
 
 for samples $p \sim Beta(a_{posterior},b_{posterior})$ and $q \sim Beta(a_{posterior},b_{posterior})$.
 
-In the implementation I'm currently using another log-transform (b/c of increased fit to the data). 
+In the implementation I'm currently using another log-transform (b/c of increased fit to the data).
 
 ```{r}
 
@@ -786,8 +885,11 @@ getExpectedBF <- function(prior_a, prior_b, posterior_a, posterior_b, nSamples) 
   exp(mean(log(q/(1-q) * (1-p)/p)))
 }
 d$BF_beta_sampled <- map_dbl(1:nrow(d), function(i){
-  getExpectedBF(d[i,'prior_beta_a'], d[i,'prior_beta_b'],
-                d[i,'posterior_beta_a'],d[i,'posterior_beta_b'], 5000) %>% 
+  getExpectedBF(d[i,'prior_beta_a'] |> as.numeric(), 
+                d[i,'prior_beta_b']|> as.numeric(), 
+                d[i,'posterior_beta_a']|> as.numeric(), 
+                d[i,'posterior_beta_b']|> as.numeric(),  
+                5000) %>% 
     log() %>% abs() %>% log()
 })
 ```
@@ -817,7 +919,7 @@ d %>% ggplot(aes(x = BF_beta, y = BF_beta_sampled)) +
   geom_point() + geom_smooth()
 ```
 
-## Correlation scores and plots 
+## Correlation scores and plots
 
 For plotting and subsequent analyses we use some more uniform names:
 
@@ -875,7 +977,7 @@ And here is a scatter plot of for predictive measures and observed relevance rat
 #| warnings: false
 #| message: false
 
-d %>% select(predictiveFactors, AnswerCertainty) %>% 
+d %>% select(all_of(predictiveFactors), AnswerCertainty) %>% 
   pivot_longer(cols = predictiveFactors[2:8], names_to = 'factor', values_to = "value") %>% 
   mutate(factor = factor(factor, levels = predictiveFactors[2:8])) %>% 
   ggplot(aes(x = value, y = relevance, color = AnswerCertainty)) +
@@ -887,8 +989,7 @@ d %>% select(predictiveFactors, AnswerCertainty) %>%
 
 ## Single-factor model comparisons
 
-To compare explanatory factors, we look at regression models with each candidate factor as the single predictor.
-We compare these models from an /ex ante/ and from an /ex post/ perspective, using Bayes factors and LOO cross-validation respectively.
+To compare explanatory factors, we look at regression models with each candidate factor as the single predictor. We compare these models from an /ex ante/ and from an /ex post/ perspective, using Bayes factors and LOO cross-validation respectively.
 
 ### Bayes factor model comparison
 
@@ -926,8 +1027,7 @@ tibble(
   ylab("log BF (relative to intercept only)")
 ```
 
-We see that the BF-based notions are the best single-factor predictors. 
-KL_beta is doing a job as well.
+We see that the BF-based notions are the best single-factor predictors. KL_beta is doing a job as well.
 
 ### LOO-based model comparison
 
@@ -1009,7 +1109,6 @@ loo_compare(
 )
 ```
 
-
 ```{r}
 model_names <- c("ER", "KL", "BF", "ER_beta", "KL_beta", "BF_beta", "BF_beta_sampled")
 tibble(
@@ -1044,8 +1143,7 @@ tibble(
 
 ## Two-factor models
 
-We can also compare measures against each other by pairing their first-order and their second-order version.
-Again we do this from an /ex ante/ and an /ex post/ perspective.
+We can also compare measures against each other by pairing their first-order and their second-order version. Again we do this from an /ex ante/ and an /ex post/ perspective.
 
 We here report the pairing of `BF` and `BF_beta` as `BF`, and the pairing of `BF` and `BF_beta_sampled` as `BF_sampled`.
 
@@ -1079,7 +1177,6 @@ tibble(
   xlab("") +
   ylab("log BF (relative to intercept only)")
 ```
-
 
 ### LOO-based model comparison for two-factor models
 
@@ -1122,7 +1219,6 @@ fit_loo_BF_sampled <- brm(
 ) %>% add_criterion("loo", model_name = "BF_sampled")
 ```
 
-
 ```{r}
 model_names <- c("ER", "KL", "BF", "BF_sampled")
 
@@ -1150,6 +1246,5 @@ tibble(
   ylab("expected log likelihood (LOO-CV) ")
 
 ```
-
 
 TODO: add drop-factor comparison; add RE structures
