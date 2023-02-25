@@ -566,7 +566,7 @@ BFComp_rel_ER_beta <- lmBF(relevance_sliderResponse ~ ER_beta, data = as.data.fr
 BFComp_rel_BF_beta <- lmBF(relevance_sliderResponse ~ BF_beta, data = as.data.frame(d))
 BFComp_rel_BF_beta_precise <- lmBF(relevance_sliderResponse ~ BF_beta_precise, data = as.data.frame(d))
 
-model_names <- c("ER", "KL", "BF", "ER_beta", "KL_beta", "BF_beta")
+model_names <- c("ER", "KL", "BF", "ER_beta", "KL_beta", "BF_beta", "BF_beta_precise")
 
 tibble(
     ER      = BFComp_rel_ER      %>% as.vector(), 
@@ -574,7 +574,8 @@ tibble(
     BF      = BFComp_rel_BF      %>% as.vector(), 
     ER_beta = BFComp_rel_ER_beta %>% as.vector(), 
     KL_beta = BFComp_rel_KL_beta %>% as.vector(), 
-    BF_beta = BFComp_rel_BF_beta %>% as.vector() 
+    BF_beta = BFComp_rel_BF_beta %>% as.vector(), 
+    BF_beta_precise = BFComp_rel_BF_beta_precise %>% as.vector() 
   ) %>% pivot_longer(everything(), names_to = "model", values_to = "relative_BF") %>% 
   mutate(
     # model = fct_reorder(model, relative_BF)
