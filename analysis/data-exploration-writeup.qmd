@@ -917,11 +917,13 @@ We find support for hypothesis two.
 We can also test whether the interaction has a credible effect:
 
 ```{r}
-brms::hypothesis(fit_confidence_diff, "belief_diff * confidence_diff > 0")
+brms::hypothesis(fit_confidence_diff, "belief_diff:confidence_diff < 0")
 ```
-Indeed it does.
+
+Indeed it does not.
 
 ### Let's redo hypothesis 2 without the interaction
+
 ```{r}
 
 if (rerun_models) {
@@ -932,26 +934,27 @@ if (rerun_models) {
     data = d
   )
   
-  write_rds(fit_confidence_diff, "cachedModels/fit_confidence_diff_no_interaction.rds")
+  write_rds(fit_confidence_diff_no_interaction, "cachedModels/fit_confidence_diff_no_interaction.rds")
   
 } else {
-  fit_confidence_diff <- read_rds("cachedModels/fit_confidence_diff_no_interaction.rds")
+  fit_confidence_diff_no_interaction <- read_rds("cachedModels/fit_confidence_diff_no_interaction.rds")
 }
 
 brms::hypothesis(fit_confidence_diff_no_interaction, "confidence_diff > 0")
-loo_compare(list("w/__confidence" = loo(fit_confidence_diff_no_interaction),
+loo_compare(list("w/__confidence_noInter" = loo(fit_confidence_diff_no_interaction),
                  "w/o_confidence" = loo(fit_belief_diff)))
 ```
+
 The confidence change still seems to have an effect.
 
 And does the interaction term make a difference?
 
 ```{r}
-loo_compare(list("w/__interaction" = loo(fit_confidence_diff),
-                 "w/o_interaction" = loo(fit_confidence_diff1)))
+loo_compare(list("w/o_interaction" = loo(fit_confidence_diff_no_interaction),
+                 "w/__interaction" = loo(fit_confidence_diff)))
 ```
 
-The expected log prob diff is less than the standard error diff, so I don't think there is evidence in favor of the interaction.
+The model with the interaction terms is numerically better, but the expected log prob diff is less than the standard error diff, so I don't think there is evidence in favor of the interaction.
 
 ### Let's also test Hypothesis 2 using the "pure" higher order belief change as the predictor
 
@@ -963,27 +966,32 @@ d <- d |>
 if (rerun_models) {
   
   fit_second_order_diff <- ordbetareg(
-    formula = relevance_sliderResponse ~ belief_diff + second_order_diff + 
+    formula = relevance_sliderResponse ~ belief_diff * second_order_diff + 
       (1 + belief_diff + second_order_diff | submission_id) + (1 + belief_diff + second_order_diff | StimID),
     data = d
   )
   
-  write_rds(fit_second_order_diff, "cachedModels/fit_second_order_diff")
+  write_rds(fit_second_order_diff, "cachedModels/fit_second_order_diff.rds")
   
 } else {
-  fit_second_order_diff <- read_rds("cachedModels/fit_second_order_diff")
+  fit_second_order_diff <- read_rds("cachedModels/fit_second_order_diff.rds")
 }
 
 brms::hypothesis(fit_second_order_diff, "second_order_diff > 0")
 loo_compare(list("w/__second_order" = loo(fit_second_order_diff),
                  "w/o_second_order" = loo(fit_belief_diff)))
+
 ```
+
 It seems that the pure second order belief diff does explain relevance judgments.
+
 Does it work better than confidence diff?
+
 ```{r}
-loo_compare(list("second_order_diff" = loo(fit_second_order_diff),
-                 "confidence_diff" = loo(fit_confidence_diff1)))
+loo_compare(list("w/__second_order_diff" = loo(fit_second_order_diff),
+                 "w/o_confidence_diff" = loo(fit_confidence_diff)))
 ```
+
 Yes. It seems to.
 
 ### In a further exploration, I will test the log of second order diff. This seems justified because:
