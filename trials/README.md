@@ -20,7 +20,7 @@ Now we give a summary of how the stimuli are structured, what the different cond
 
 Main trials are based on 12 vignettes (column: `StimID`), each of which is instantiated 21 times to realize each of the 21 different experimental conditions.
 An experimental condition is defined as a triple of factors: 
-  + `AnswerCertainty` w/ 3 levels: `high_certainty`, `low_certainty` and `non_answer`
+  + `AnswerCertainty` w/ 4 levels: `exhaustive` `high_certainty`, `low_certainty` and `non_answer`
   + `AnswerPolarity` w/ 2 levels: `negative` and `positive` (it is undefined for `non_answer`s)
   + `ContextType` w/ 3 levels: `negative`, `neutral` and `positive`
 
