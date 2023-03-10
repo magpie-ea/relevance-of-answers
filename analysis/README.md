@@ -19,7 +19,6 @@ Set your project root before running the following.
 
 ```bash
 RESULTS_DIR=$PROJECT_ROOT/results/round_1.0
-#RAW_RESULTS=$RESULTS_DIR/results_80_relevance-answers.csv
 cd $PROJECT_ROOT/analysis
 ```
 
@@ -67,21 +66,27 @@ the `beta-KL` measure and the relevance judgments.
 python3 fit_beta.py --input $RESULTS_DIR/results_filtered.tmp
 ```
 
-TODO:
-- Revisit the linking function.
-- Optimize the linking function separately for each higher-order metric.
-- Optimize the linking function based on held-out data (i.e., data from our first run)
-
 ### Step 5: Computing metrics
 
 Now, we want to take the raw judgments and the beta distributions, and compute our hypothesized relevance predictors 
 (e.g., entropy reduction, Bayes Factor, higher-order measures, baselines).
 
+A complete list of predictors is as follows:
+- First order belief change: `|prior - posterior|`
+- Second order belief change: `|prior_confidence - posterior_confidence|`
+- Entropy change: `|H(posterior) - H(prior)|`
+- KL utility: `g(KL(posterior || prior)) where g(x) = 1-exp(-x)`
+- Bayes Factor utility: `1 - BF(prior, posterior)` where prior and posterior are the probabilities of the alternative that decreases in probability from prior to posterior.
+- Beta-KL utility: `g(KL((posterior_a, posterior_b) || (prior_a, prior_b))) where g(x) = 1-exp(-x)`
+- Beta-entropy change: `|H((posterior_a, posterior_b)) - H((prior_a, prior_b))|`
+- Beta-Bayes factor utility: `log(|posterior_a - prior_a| + |posterior_b - prior_b| + 2)`
+- Pure second order belief change: `|prior_a + prior_b - (posterior_a + posterior_b)|`
+
 ```bash
 python3 compute_metrics.py --input $RESULTS_DIR/results_filtered.tmp --output $RESULTS_DIR/results_processed.jsonl
 ```
 
-And last some cleanup:
+### Step 6: Clean up temp file
 ```bash
 rm $RESULTS_DIR/results_filtered.tmp
 ```

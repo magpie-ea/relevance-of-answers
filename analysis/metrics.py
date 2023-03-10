@@ -153,9 +153,16 @@ def entropy_dirichlet(P):
     https://en.wikipedia.org/wiki/Beta_distribution#Quantities_of_information_(entropy)
     """
     a0 = sum(P)
-    return math.log(math.prod([gamma(a) for a in P]) / gamma(a0)) \
-           + (a0 - len(P)) * digamma(a0) \
-           - sum([(p - 1) * digamma(p) for p in P])
+    try:
+        to_return = math.log(math.prod([gamma(a) for a in P]) / gamma(a0)) \
+               + (a0 - len(P)) * digamma(a0) \
+               - sum([(p - 1) * digamma(p) for p in P])
+
+        if np.isnan(to_return):
+            to_return = -5
+    except ValueError:
+        to_return = -5
+    return to_return
 
 
 def entropy_reduction_dirichlet(P, Q):
@@ -164,4 +171,31 @@ def entropy_reduction_dirichlet(P, Q):
     :param Q: posterior params for dirichlet dist.
     :return: Entropy reduction
     """
-    return entropy_dirichlet(P) - entropy_dirichlet(Q)
+    return abs(entropy_dirichlet(P) - entropy_dirichlet(Q))
+
+
+def beta_bayes_factor(P, Q):
+    """
+    :param P: prior params for dirichlet dist.
+    :param Q: posterior params for dirichlet dist.
+    :return:
+    """
+    return abs(P[0] - Q[0]) + abs(P[1] - Q[1])
+
+
+def beta_bayes_factor_util(P, Q):
+    """
+    :param P: prior params for dirichlet dist.
+    :param Q: posterior params for dirichlet dist.
+    :return:
+    """
+    return math.log(beta_bayes_factor(P, Q) + 2)
+
+
+def pure_second_order_belief_change(P, Q):
+    """
+    :param P: prior params for dirichlet dist.
+    :param Q: posterior params for dirichlet dist.
+    :return:
+    """
+    return abs(P[0] + P[1] - (Q[0] + Q[1]))

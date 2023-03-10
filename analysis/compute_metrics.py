@@ -19,16 +19,15 @@ def compute_metrics(raw_data, prior_colname, posterior_colname):
     :return:
     """
     items = raw_data
-    items['kl'] = items.apply(lambda x: kl(x[posterior_colname], x[prior_colname]), axis=1)
-    items['kl_util'] = items.apply(lambda x: exp10(kl(x[posterior_colname], x[prior_colname])), axis=1)
-    items['entropy_reduction'] = items.apply(lambda x: entropy_reduction(x[prior_colname], x[posterior_colname]), axis=1)
-    items['bayes_factor'] = items.apply(lambda x: bayes_factor(x[posterior_colname], x[prior_colname]), axis=1)
-    items['exp_bayes_factor'] = items.apply(lambda x: exp_bayes_factor(x[posterior_colname], x[prior_colname]), axis=1)
-    items['posterior_distance'] = items.apply(lambda x: posterior_distance(x[posterior_colname]), axis=1)
-    items['prior_posterior_distance'] = items.apply(lambda x: prior_posterior_distance(x[posterior_colname], x[prior_colname]), axis=1)
-    items['kl_beta'] = items.apply(lambda x: kl_dirichlet(x['posterior_beta'], x['prior_beta']), axis=1)
-    items['kl_util_beta'] = items.apply(lambda x: exp(2, kl_dirichlet(x['posterior_beta'], x['prior_beta'])), axis=1)
-    items['entropy_reduction_beta'] = items.apply(lambda x: entropy_reduction_dirichlet(x['prior_beta'], x['posterior_beta']), axis=1)
+    items['first_order_belief_change'] = items.apply(lambda x: prior_posterior_distance(x[posterior_colname], x[prior_colname]), axis=1)
+    items['second_order_belief_change'] = items.apply(lambda x: prior_posterior_distance(x['prior_confidence'], x['posterior_confidence']), axis=1)
+    items['entropy_change'] = items.apply(lambda x: entropy_reduction(x[prior_colname], x[posterior_colname]), axis=1)
+    items['kl_utility'] = items.apply(lambda x: exp10(kl(x[posterior_colname], x[prior_colname])), axis=1)
+    items['bayes_factor_utility'] = items.apply(lambda x: bf_utility_polar(x[posterior_colname], x[prior_colname]), axis=1)
+    items['beta_kl_utility'] = items.apply(lambda x: exp(2, kl_dirichlet(x['posterior_beta_for_kl'], x['prior_beta_for_kl'])), axis=1)
+    items['beta_entropy_change'] = items.apply(lambda x: entropy_reduction_dirichlet(x['prior_beta_for_entropy'], x['posterior_beta_for_entropy']), axis=1)
+    items['beta_bayes_factor_utility'] = items.apply(lambda x: beta_bayes_factor_util(x['prior_beta_for_bf'], x['posterior_beta_for_bf']), axis=1)
+    items['pure_second_order_belief_change'] = items.apply(lambda x: pure_second_order_belief_change(x['prior_beta_for_2nd_order_change'], x['posterior_beta_for_2nd_order_change']), axis=1)
     return items 
     
 if __name__ == "__main__":
