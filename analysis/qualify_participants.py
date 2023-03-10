@@ -9,7 +9,7 @@ parser.add_argument("--pilot", action="store_true", help="Does the data include 
 args = parser.parse_args()
 
 ATTENTION_PASS_THRESHOLD = 1
-REASONING_PASS_THRESHOLD = 0.75
+REASONING_PASS_THRESHOLD = 0.625
 
 
 
@@ -17,7 +17,7 @@ df = pd.read_csv(args.raw_responses)
 if args.pilot:
     df = df[df.submission_id.apply(lambda x: x >= 3008)]  # Exclude responses from beta testers (i.e. authors & friends)
     df = df[df.submission_id.apply(lambda x: x not in [3008, 3009])]  # Exclude responses from pilot 0.1. The p_min/p_max for attention check were wrong
-    df = df[df.submission_id.apply(lambda x: x not in [3031])]  # Author test
+    df = df[df.submission_id.apply(lambda x: x not in [3031])]  # Exclude author test
 
 # Make percents into probabilities
 df["sliderResponse"] = df["sliderResponse"]/100
