@@ -23,7 +23,7 @@ def certainty_linking_function(x, certainty):
     return x[0] * (x[1] ** certainty)
 
 
-def objective_function_exp_concentration_map(x, df):
+def objective_function_exp_concentration_map(x, df, metric):
     def map_certainty_to_concentration_local(certainty):
         return certainty_linking_function(x, certainty)
 
@@ -33,11 +33,12 @@ def objective_function_exp_concentration_map(x, df):
     posterior = df.apply(lambda z: fit_beta_mode_concentration(z[f"posterior_sliderResponse"],
                                                                 map_certainty_to_concentration_local(z[f"posterior_confidence"])), axis=1)
 
-    r = [kl_util_dirichlet(post, pre) for pre, post in zip(prior, posterior)]
+    r = [metric(pre, post) for pre, post in zip(prior, posterior)]
     try:
         to_return = -1 * pearsonr(df["relevance_sliderResponse"], r)[0]
     except ValueError:
         to_return = np.inf
+    # print(x, to_return)
     return to_return
 
 
@@ -48,16 +49,25 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     df = pd.read_json(args.input, orient="records", lines=True)
-    x = minimize(lambda x: objective_function_exp_concentration_map(x, df),
-                 method='SLSQP',
-                 x0=np.array([3, 3]),
-                 bounds=[(0, np.inf), (0, np.inf)]
-                 ).x
-    # a, b = x.x[0], x.x[1]
-    for p in ["prior", "posterior"]:
-        df[f"{p}_concentration"] = df[f"{p}_confidence"].apply(lambda c: certainty_linking_function(x, c))
-        df[f"{p}_beta"] = df.apply(lambda x: fit_beta_mode_concentration(x[f"{p}_sliderResponse"], x[f"{p}_concentration"]), axis=1)
-        df.drop(f"{p}_concentration", axis=1)
+    metrics = {
+        "kl": lambda p, q: kl_util_dirichlet(q, p),
+        "entropy": entropy_reduction_dirichlet,
+        "bf": beta_bayes_factor_util,
+        "2nd_order_change": pure_second_order_belief_change
+    }
+    for metric in metrics:
+        print(metric)
+        x = minimize(lambda x: objective_function_exp_concentration_map(x, df, metrics[metric]),
+                     method='SLSQP',
+                     x0=np.array([1, 2]),
+                     bounds=[(0, np.inf), (1, np.inf)]
+                     ).x
+        print(f"{x[0]} * {x[1]}^c")
+        print(f"best correlation: {-1 * objective_function_exp_concentration_map(x, df, metrics[metric])}")
+        for p in ["prior", "posterior"]:
+            df[f"{p}_concentration"] = df[f"{p}_confidence"].apply(lambda c: certainty_linking_function(x, c))
+            df[f"{p}_beta_for_{metric}"] = df.apply(lambda x: fit_beta_mode_concentration(x[f"{p}_sliderResponse"], x[f"{p}_concentration"]), axis=1)
+            df = df.drop(f"{p}_concentration", axis=1)
 
     output = args.output if args.output else args.input
     df.to_json(output, orient="records", lines=True)
