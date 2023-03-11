@@ -62,85 +62,93 @@ The cleaned and pre-processed data comes in JSON format, and contains nested lis
 
 ```{r}
 # read cleaned data from JSON-lines file and cast to tibble
-d <- read_json("../results/round_1.0/results_processed.jsonl") %>% 
-  spread_all() %>% 
-  select(-..JSON, -document.id) %>% as_tibble() %>% 
+d <- read_json("../results/round_1.0/results_processed.jsonl") |> 
+  spread_all() |> 
+  select(-..JSON, -document.id) |> as_tibble() |> 
   # set "non-answers" to AnswerPolarity "positive"
-  mutate(AnswerPolarity = ifelse(AnswerCertainty == "non_answer", "positive", AnswerPolarity))
+  mutate(AnswerPolarity = ifelse(
+    AnswerCertainty == "non_answer", 
+    "positive", 
+    AnswerPolarity))
 
 # add information from (nested) JSON entries on beta-parameters for prior and posterior
-prior_beta <- read_json("../results/round_1.0/results_processed.jsonl") %>% 
-  enter_object(prior_beta) %>% gather_array() %>% 
-  mutate(parameter = ifelse(array.index == 1, "prior_beta_a", "prior_beta_b"),
-         value = as.numeric(..JSON)) %>% 
+# TODO streamline this!
+
+# KL
+prior_beta_for_kl <- read_json("../results/round_1.0/results_processed.jsonl") |> 
+  enter_object("prior_beta_for_kl") |> gather_array() |> 
+  mutate(parameter = ifelse(array.index == 1, str_c("prior_beta_for_kl", "_a"), str_c("prior_beta_for_kl", "_b")),
+         value = as.numeric(..JSON)) |> 
   pivot_wider(id_cols = document.id, names_from = parameter, values_from = value)
-posterior_beta <- read_json("../results/round_1.0/results_processed.jsonl") %>% 
-  enter_object(posterior_beta) %>% gather_array() %>% 
-  mutate(parameter = ifelse(array.index == 1, "posterior_beta_a", "posterior_beta_b"),
-         value = as.numeric(..JSON)) %>% 
+
+posterior_beta_for_kl <- read_json("../results/round_1.0/results_processed.jsonl") |> 
+  enter_object(posterior_beta_for_kl) |> gather_array() |> 
+  mutate(parameter = ifelse(array.index == 1, str_c("posterior_beta_for_kl", "_a"), str_c("posterior_beta_for_kl", "_b")),
+         value = as.numeric(..JSON)) |> 
+  pivot_wider(id_cols = document.id, names_from = parameter, values_from = value)
+
+# entropy
+prior_beta_for_entropy <- read_json("../results/round_1.0/results_processed.jsonl") |> 
+  enter_object("prior_beta_for_entropy") |> gather_array() |> 
+  mutate(parameter = ifelse(array.index == 1, str_c("prior_beta_for_entropy", "_a"), str_c("prior_beta_for_entropy", "_b")),
+         value = as.numeric(..JSON)) |> 
+  pivot_wider(id_cols = document.id, names_from = parameter, values_from = value)
+
+posterior_beta_for_entropy <- read_json("../results/round_1.0/results_processed.jsonl") |> 
+  enter_object(posterior_beta_for_entropy) |> gather_array() |> 
+  mutate(parameter = ifelse(array.index == 1, str_c("posterior_beta_for_entropy", "_a"), str_c("posterior_beta_for_entropy", "_b")),
+         value = as.numeric(..JSON)) |> 
+  pivot_wider(id_cols = document.id, names_from = parameter, values_from = value)
+
+# bf
+prior_beta_for_bf <- read_json("../results/round_1.0/results_processed.jsonl") |> 
+  enter_object("prior_beta_for_bf") |> gather_array() |> 
+  mutate(parameter = ifelse(array.index == 1, str_c("prior_beta_for_bf", "_a"), str_c("prior_beta_for_bf", "_b")),
+         value = as.numeric(..JSON)) |> 
+  pivot_wider(id_cols = document.id, names_from = parameter, values_from = value)
+
+posterior_beta_for_bf <- read_json("../results/round_1.0/results_processed.jsonl") |> 
+  enter_object(posterior_beta_for_bf) |> gather_array() |> 
+  mutate(parameter = ifelse(array.index == 1, str_c("posterior_beta_for_bf", "_a"), str_c("posterior_beta_for_bf", "_b")),
+         value = as.numeric(..JSON)) |> 
+  pivot_wider(id_cols = document.id, names_from = parameter, values_from = value)
+
+# 2nd_order_change
+prior_beta_for_2nd_order_change <- read_json("../results/round_1.0/results_processed.jsonl") |> 
+  enter_object("prior_beta_for_2nd_order_change") |> gather_array() |> 
+  mutate(parameter = ifelse(array.index == 1, str_c("prior_beta_for_2nd_order_change", "_a"), str_c("prior_beta_for_2nd_order_change", "_b")),
+         value = as.numeric(..JSON)) |> 
+  pivot_wider(id_cols = document.id, names_from = parameter, values_from = value)
+
+posterior_beta_for_2nd_order_change <- read_json("../results/round_1.0/results_processed.jsonl") |> 
+  enter_object(posterior_beta_for_2nd_order_change) |> gather_array() |> 
+  mutate(parameter = ifelse(array.index == 1, str_c("posterior_beta_for_2nd_order_change", "_a"), str_c("posterior_beta_for_2nd_order_change", "_b")),
+         value = as.numeric(..JSON)) |> 
   pivot_wider(id_cols = document.id, names_from = parameter, values_from = value)
 
 # bind tibbles together
 d <- cbind(
   d,
-  prior_beta %>% select(-document.id), 
-  posterior_beta %>% select(-document.id)
-)
-```
-
-Here's a glimpse at the data:
-
-```{r}
-glimpse(d)
-```
-
-Here's a list of what each column represents:
-
-```{r}
-#| echo: false
-
-list(
-  "submission_id" = "ID for each participant",
-  "group" = "whether the participant saw trigger word 'helpful' or 'relevant'",
-  "StimID" = "ID for each stimulus (vignette)",
-  "AnswerCertainty" = "whether shown answer in trial was 'exhaustive', 'high_certainty', 'low_certainty' or 'non_answer'",
-  "AnswerPolarity" = "whether shown answer in trial was 'positive' (suggesting yes) or 'negative' (suggestion no)",
-  "ContextType" = "whether the vignette was realized as making a 'no' answer more likely ('negative'), or a 'yes' answer ('positive') or neither ('neutral')",
-  "posterior_confidence" = "slider rating indicating confidence in the corresponding posterior rating",
-  "prior_confidence" = "slider rating indicating confidence in the corresponding prior rating",
-  "posterior_SliderResponse" = "slider rating indicating posterior belief (= after the answer)",
-  "prior_SliderResponse" = "slider rating indicating prior belief (= before the answer)",
-  "relevance_sliderResponse" = "slider rating indicating how 'relevant' or 'helpful' the answer was (trigger word depends on 'group' variable)",
-  "prior_concentration" = "inferred concetration parameter of a beta distribution representing the participants prior and prior confidence ratings",
-  "posterior_concentration" = "inferred concetration parameter of a beta distribution representing the participants posterior and posterior confidence ratings",
-  "kl" = "KL divergence from posterior (true distribution) to prior (approximate distribution)",
-  "kl_util" = "scaled KL divergence as 1 - (10^{-kl})",
-  "entropy_reduction" = "abs(Entropy(prior) - Entropy(posterior))",
-  "bayes_factor" = "abs(log(BF)) where BF is the Bayes factor, computed as posterior-odds / prior-odds (based on ratings given for prior and posterior)",
-  "exp_bayes_factor" = "scaled Bayes factor, computed as 1 - (10^{-bayes_factor})",
-  "posterior_distance" = "distance of posterior from uniform distribution, calculated as 2 * abs(0.5 - prior)",
-  "prior_posterior_distance" = "distance between prior and posterior, calculated as abs(prior - posterior)",
-  "kl_beta" = "KL divergence between the higher-order prior & posterior distributions, which are computed from the prior/posterior slider ratings and the corresponding confidence ratings",
-  "kl_util_beta" = "scaled kl_beta computed as 2^{-kl_beta}",
-  "entropy_reduction_beta" = "Entropy(higher-order prior) - Entropy(higher-order posterior)",
-  "prior_beta_a" = "alpha parameter of the (inferred) beta distribution describing the participants prior beliefs, based on ratings for 'prior' and 'prior_confidence'",
-  "prior_beta_b" = "beta parameter of the (inferred) beta distribution describing the participants prior beliefs, based on ratings for 'prior' and 'prior_confidence'",
-  "posterior_beta_a" = "alpha parameter of the (inferred) beta distribution describing the participants posterior beliefs, based on ratings for 'posterior' and 'posterior_confidence'",
-  "posterior_beta_b" = "beta parameter of the (inferred) beta distribution describing the participants posterior beliefs, based on ratings for 'posterior' and 'posterior_confidence'"
+  prior_beta_for_kl |> select(-document.id), 
+  posterior_beta_for_kl |> select(-document.id),
+  prior_beta_for_entropy |> select(-document.id), 
+  posterior_beta_for_entropy |> select(-document.id),
+  prior_beta_for_bf |> select(-document.id), 
+  posterior_beta_for_bf |> select(-document.id),
+  prior_beta_for_2nd_order_change |> select(-document.id), 
+  posterior_beta_for_2nd_order_change |> select(-document.id)
 )
 ```
 
 For convenience, a bit of renaming and re-leveling:
 
 ```{r}
-d <- d %>% 
+d <- d |> as_tibble() |> 
   mutate(
     "trigger word" = factor(group, levels = c("relevant", "helpful")),
     "relevance rating" = relevance_sliderResponse,
     ContextType = factor(ContextType, 
                          levels = c("negative", "neutral", "positive")),
-    AnswerPolarity = factor(AnswerPolarity, 
-                            levels = c("positive", "negative")),
     AnswerPolarity = factor(AnswerPolarity, 
                             levels = c("positive", "negative")),
     AnswerCertainty = factor(AnswerCertainty, 
@@ -154,108 +162,8 @@ Number of participants:
 ```{r}
 #| echo: false
 
-# 71 subjects after cleaning
-d %>% pull(submission_id) %>% unique() %>% length()
+d |> pull(submission_id) |> unique() |> length()
 
-```
-
-# Additional data cleaning
-
-## "Task-sensitivity" of participants and items
-
-Determine "task sensitivity" of participants and items:
-
-```{r}
-# Adding information on "task sensitivity" for participants and per items:
-# - a trial counts as "deviant" iff there is no change in belief for a proper answer
-# - "no change in belief" means less change in prior->posterior than 0.05 AND no difference in confidence ratings
-# - task sensitivity is the proportion of non-deviant trials (either per participant or per item)
-d <- d |> as_tibble() |> 
-  mutate(answer_class  = ifelse(AnswerCertainty != "non_answer", "answer", "non_answer"),
-         belief_change = abs(prior_sliderResponse - posterior_sliderResponse) >= 0.05 | prior_confidence != posterior_confidence,
-         deviant = case_when(answer_class == "answer" ~ !belief_change,
-                             answer_class != "answer" ~  FALSE)
-         ) |> 
-  group_by(submission_id) |> 
-  mutate(task_sensitivity_participant = 1- sum(deviant) / sum(answer_class == "answer")) |> 
-  ungroup() |> 
-  group_by(StimID) |> 
-  mutate(task_sensitivity_item = 1 - sum(deviant) / sum(answer_class == "answer")) |> 
-  ungroup() |> 
-  select(-answer_class, -belief_change, -deviant)
-
-# d |> select(submission_id, task_sensitivity_participant) |> unique() |> arrange(task_sensitivity_participant, -submission_id) |> View()
-```
-
-Here are the results for participants:
-
-```{r}
-# plotting task-sensitivity for participants
-d |> 
-  group_by(submission_id) |> 
-  mutate(
-    task_sensitivty = task_sensitivity_participant
-    ) |> 
-  arrange(-task_sensitivty) |> 
-  ungroup() |> 
-  mutate(submission_id = str_c(submission_id, " (", round(task_sensitivity_participant,2), ")") |> as_factor() |> 
-           fct_reorder(task_sensitivty),
-         ) |> 
-  ggplot(aes(x = prior_sliderResponse, y = posterior_sliderResponse, color = 1- relevance_sliderResponse)) +
-  geom_point() +
-  geom_errorbar(aes(xmin = prior_sliderResponse - (7-prior_confidence)/24,
-                    xmax = prior_sliderResponse + (7-prior_confidence)/24)) +
-  geom_errorbar(aes(ymin = posterior_sliderResponse - (7-posterior_confidence)/24,
-                    ymax = posterior_sliderResponse + (7-posterior_confidence)/24)
-                ) +
-  geom_abline(aes(intercept =0, slope = 1), color = project_colors[1]) +
-  xlim(-0.2,1.2) + ylim(-0.2,1.) +
-  facet_wrap(.~ submission_id, nrow = 8)
-```
-
-Here are the results for items:
-
-```{r}
-# plotting task-sensitivity for items
-d |> 
-  mutate(answer = str_c(AnswerCertainty, ":", AnswerPolarity)) |> 
-  group_by(StimID) |> 
-  mutate(
-    task_sensitivty = task_sensitivity_item
-    ) |> 
-  arrange(-task_sensitivty) |> 
-  ungroup() |> 
-  mutate(StimID = str_c(StimID, " (", round(task_sensitivity_item,2), ")") |> as_factor() |> 
-           fct_reorder(task_sensitivty)) |> 
-  ggplot(aes(x = prior_sliderResponse, y = posterior_sliderResponse, color = 1- relevance_sliderResponse, shape = group)) +
-  geom_point(size = 2) +
-  geom_errorbar(aes(xmin = prior_sliderResponse - (7-prior_confidence)/24,
-                    xmax = prior_sliderResponse + (7-prior_confidence)/24)) +
-  geom_errorbar(aes(ymin = posterior_sliderResponse - (7-posterior_confidence)/24,
-                    ymax = posterior_sliderResponse + (7-posterior_confidence)/24)
-                ) +
-  geom_abline(aes(intercept =0, slope = 1), color = project_colors[1]) +
-  xlim(-0.2,1.2) + ylim(-0.2,1.) +
-  facet_grid(answer ~ StimID)
-```
-
-Based on this measure and the following plot, it seems reasonable to exclude participants with task sensitivity of 0.75 or lower. There don't seem to be any particularly troublesome items, though.
-
-```{r}
-# excluding participants based on insufficient "task sensitivity"
-d <- d |> filter(task_sensitivity_participant > 0.75) 
-```
-
-## Zero-one inflation in slider ratings?
-
-Investigating zero-one inflation in slider responses ... doesn't seem to be an issue!
-
-```{r}
-d |> ggplot(aes(x = prior_sliderResponse)) +
-  geom_histogram(bins = 60)
-d |> ggplot(aes(x = posterior_sliderResponse)) +
-  geom_histogram(bins = 60) + 
-  facet_grid(ContextType ~ AnswerPolarity)
 ```
 
 # Exploring the effect of the experimental factors
@@ -281,7 +189,10 @@ To check whether the `ContextType` manipulation worked, we compare how participa
 Here is a first plot addressing the question after an effect of `ContextType` on participants prior ratings.
 
 ```{r}
-d %>% ggplot(aes(x = prior_sliderResponse, color = ContextType, fill = ContextType)) +
+#| eval: false
+
+# TDOD fix this
+d |> ggplot(aes(x = prior_sliderResponse, color = ContextType, fill = ContextType)) +
   geom_density(alpha = 0.3) + 
   xlab("prior rating") +
   ylab("")
@@ -326,7 +237,7 @@ ContextType_SC_neuVSpos <-
 Here is a visualization of the effect of `ContextType` on participants' confidence in their prior ratings.
 
 ```{r}
-d %>% ggplot(aes(x = prior_confidence, color = ContextType, fill = ContextType)) +
+d |> ggplot(aes(x = prior_confidence, color = ContextType, fill = ContextType)) +
   geom_density(alpha = 0.3) + 
   xlab("prior confidence") +
   ylab("")
@@ -393,7 +304,7 @@ The `ContextType` manipulation seems to have worked as expected for the prior ra
 Finally, this is an interesting plot, showing the relation between prior ratings and prior confidence, also in dependence on `ContextType`. We see that, unsurprisingly, the value 0.5 for prior rattings has an exceptional status, attracting a lot of data points from the whole range of prior confidence. Ignoring this value, there is a seemingly U-shaped curve, suggesting a trend to be more confident in ratings further away from 0.5. \[We could speak of **Laplacian confidence**: total confidence that we have absolutely no idea, hence prior=0.5. That level of confidence is not attainable, it seems, for 0.49, unless we'd have very specific information.\]
 
 ```{r}
-d %>% ggplot(aes(x = prior_sliderResponse, 
+d |> ggplot(aes(x = prior_sliderResponse, 
                  y = prior_confidence, 
                  color = ContextType)) +
   geom_jitter(height = 0.3, width =0, alpha = 0.7) +
@@ -407,7 +318,7 @@ How does the change in confidence relate to the change in extremity? We use "ext
 ```{r}
 d$extremity_delta <- abs(0.5 - d$posterior_sliderResponse) - abs(0.5 - d$prior_sliderResponse)
 d$confidence_delta <- d$posterior_confidence - d$prior_confidence
-d %>% ggplot(aes(x = extremity_delta, y = confidence_delta, color = ContextType)) +
+d |> ggplot(aes(x = extremity_delta, y = confidence_delta, color = ContextType)) +
   geom_jitter(height = 0.3, width =0, alpha = 0.7) +
   # geom_point(alpha = 0.7) +
   xlab("change in extremity (distance from 0.5) from prior to posterior") +
@@ -419,7 +330,7 @@ The general trend is as expected: If the posterior probability is more extreme t
 We also check this for the posterior:
 
 ```{r}
-d %>% ggplot(aes(x = posterior_sliderResponse, 
+d |> ggplot(aes(x = posterior_sliderResponse, 
                  y = posterior_confidence, 
                  color = ContextType)) +
   geom_jitter(height = 0.3, width =0, alpha = 0.7) +
@@ -432,7 +343,7 @@ Visually, it seems there is a strong correlation between the "extremeness" of th
 
 ```{r}
 d$prior_distance <- 2 * abs(0.5 - d$prior_sliderResponse)
-d %>% ggplot(aes(x = prior_distance, 
+d |> ggplot(aes(x = prior_distance, 
                  y = prior_confidence, 
                  color = ContextType)) +
   geom_jitter(height = 0.1, width =0, alpha = 0.7) +
@@ -451,9 +362,9 @@ We can define `beliefChange` as the difference between posterior and prior *in t
 Here is a plot visually addressing these issues:
 
 ```{r}
-d %>% filter(AnswerCertainty != "non_answer") %>% 
+d |> filter(AnswerCertainty != "non_answer") |> 
   mutate(beliefChange = posterior_sliderResponse - prior_sliderResponse,
-         beliefChange = ifelse(AnswerPolarity == "positive", beliefChange, - beliefChange)) %>% 
+         beliefChange = ifelse(AnswerPolarity == "positive", beliefChange, - beliefChange)) |> 
   ggplot(aes(x = beliefChange, color = AnswerCertainty, fill = AnswerCertainty)) +
   geom_density(alpha = 0.3) +
   facet_grid(AnswerPolarity ~ AnswerCertainty) +
@@ -473,7 +384,7 @@ if (rerun_models) {
     formula = beliefChange ~ ContextType * AnswerCertainty * AnswerPolarity +
       (1 + ContextType + AnswerCertainty + AnswerPolarity | StimID) +
       (1 + ContextType + AnswerCertainty + AnswerPolarity | submission_id),
-    data = d %>% filter(AnswerCertainty != "non_answer") %>% 
+    data = d |> filter(AnswerCertainty != "non_answer") |> 
       mutate(beliefChange = posterior_sliderResponse - prior_sliderResponse,
              beliefChange = ifelse(AnswerPolarity == "positive", beliefChange, - beliefChange))
   )
@@ -497,11 +408,11 @@ cellDraws_answers <- tibble(
 ) 
 
 # all posterior 95% HDIs are wayquire above 0 
-cellDraws_answers %>% as.matrix() %>% 
+cellDraws_answers |> as.matrix() |> 
   apply(., 2, aida::summarize_sample_vector)
 
 # posterior probability of mean bigger 0 for each cell is almost 1 everywhere
-as.matrix(cellDraws_answers) %>% 
+as.matrix(cellDraws_answers) |> 
   apply(., 2, function(x) {mean(x>0)})
 ```
 
@@ -558,15 +469,15 @@ A "no belief change" case is a trial in which the prior judgement equals the pos
 ```{r}
 #| eval: false
 
-d %>% mutate(
+d |> mutate(
   noBeliefChange = case_when(
     prior_sliderResponse == posterior_sliderResponse &
       prior_confidence == posterior_confidence ~ TRUE,
     TRUE ~ FALSE
   )
-) %>%
+) |>
   select(submission_id, AnswerCertainty, prior_sliderResponse, posterior_sliderResponse ,
-      prior_confidence, posterior_confidence, noBeliefChange) %>% 
+      prior_confidence, posterior_confidence, noBeliefChange) |> 
   knitr::kable()
 ```
 
@@ -578,17 +489,17 @@ d %>% mutate(
 Here we view how often ...
 
 ```{r}
-d %>% mutate(
+d |> mutate(
   noBeliefChange = case_when(
     prior_sliderResponse == posterior_sliderResponse &
     prior_confidence == posterior_confidence ~ TRUE,
     TRUE ~ FALSE
   )
-) %>% select(
+) |> select(
   submission_id, noBeliefChange
-) %>% pivot_wider(
+) |> pivot_wider(
   values_from=noBeliefChange, names_from=submission_id, values_fn=mean
-) %>% as.numeric() %>% hist()
+) |> as.numeric() |> hist()
 ```
 
 ## Predicting relevance in terms of the experimental factors
@@ -722,15 +633,15 @@ To investigate further which experimental factors influence the ratings of relev
 #| echo: false
 #| eval: false
 
-# p_relevant <- d %>% 
-#   filter(group == "relevant") %>% 
+# p_relevant <- d |> 
+#   filter(group == "relevant") |> 
 #   ggplot(aes(x = `relevance rating`, color = AnswerPolarity, fill = AnswerPolarity)) +
 #   facet_grid(AnswerCertainty ~ ContextType , scales = "free") +
 #   geom_density(alpha = 0.3) +
 #   ggtitle("trigger word: 'relevant'")
 # 
-# p_helpful <- d %>% 
-#   filter(group == "helpful") %>% 
+# p_helpful <- d |> 
+#   filter(group == "helpful") |> 
 #   ggplot(aes(x = `relevance rating`, color = AnswerPolarity, fill = AnswerPolarity)) +
 #   facet_grid(AnswerCertainty ~ ContextType , scales = "free") +
 #   geom_density(alpha = 0.3) +
@@ -740,7 +651,7 @@ To investigate further which experimental factors influence the ratings of relev
 ```
 
 ```{r}
-d %>% 
+d |> 
   ggplot(aes(x = `relevance rating`, color = AnswerPolarity, fill = AnswerPolarity)) +
   facet_grid(AnswerCertainty ~ ContextType , scales = "free") +
   geom_density(alpha = 0.3) + theme_aida()
@@ -830,9 +741,9 @@ draws_ContextType <-
     positive = extract_cell_draws(fit, ContextType == "positive", colname = "positive")$positive,
     negative = extract_cell_draws(fit, ContextType == "negative", colname = "negative")$negative,
     neutral = extract_cell_draws(fit, ContextType == "neutral", colname = "neutral")$neutral
-  ) %>% pivot_longer(cols = everything())
+  ) |> pivot_longer(cols = everything())
 
-draws_ContextType %>% 
+draws_ContextType |> 
   ggplot(aes(x = value, color = name, fill = name)) +
   geom_density(alpha = 0.3)
 ```
@@ -850,7 +761,6 @@ d <- d |>
   mutate(belief_diff = abs(prior_sliderResponse - posterior_sliderResponse),
          confidence_diff = abs(prior_confidence - posterior_confidence)
          )
-
 
 if (rerun_models) {
   fit_belief_diff <- ordbetareg(
@@ -874,8 +784,12 @@ if (rerun_models) {
 }
 
 brms::hypothesis(fit_belief_diff, "belief_diff > 0")
-loo_compare(list("w/__slope" = loo(fit_belief_diff),
-                 "w/o_slope" = loo(fit_belief_diff_interceptOnly)))
+loo_comp <- loo_compare(list("w/__slope" = loo(fit_belief_diff),
+                             "w/o_slope" = loo(fit_belief_diff_interceptOnly)))
+loo_comp
+# Lambert's z-score test
+# TODO: model comparison no longer works in favor of the more complex model
+1 - pnorm(-loo_comp[2,1], loo_comp[2,2])
 ```
 
 We find support for hypothesis one.
@@ -901,8 +815,12 @@ if (rerun_models) {
 }
 
 brms::hypothesis(fit_confidence_diff, "confidence_diff > 0")
-loo_compare(list("w/__confidence" = loo(fit_confidence_diff),
-                 "w/o_confidence" = loo(fit_belief_diff)))
+# TODO: fix warnings for LOO calculation
+loo_comp <- loo_compare(list("w/__confidence" = loo(fit_confidence_diff),
+                             "w/o_confidence" = loo(fit_belief_diff)))
+loo_comp
+# Lambert's z-score test
+1 - pnorm(-loo_comp[2,1], loo_comp[2,2])
 ```
 
 We find support for hypothesis two.
@@ -910,6 +828,7 @@ We find support for hypothesis two.
 We can also test whether the interaction has a credible effect:
 
 ```{r}
+# TODO: new result
 brms::hypothesis(fit_confidence_diff, "belief_diff:confidence_diff < 0")
 ```
 
@@ -1033,10 +952,10 @@ It seems that there is a problem with the original calculation of entropy reduct
 
 ```{r}
 
-d %>%
+d |>
   mutate(check = is.na(entropy_reduction_beta) == (prior_confidence == 7 | 
-                                                     posterior_confidence == 7)) %>%
-  pull(check) %>% all()
+                                                     posterior_confidence == 7)) |>
+  pull(check) |> all()
 ```
 
 ER values should not be NA when confidence levels are high, but rather just very low. Therefore, add a new ER_beta value (and store individual entropy of prior and posterior along the way).
@@ -1055,7 +974,7 @@ get_entropy_beta <- function(a, b) {
   }
 }
 
-d <- d %>% 
+d <- d |> 
   mutate(
     prior_entropy = map_dbl(1:nrow(d), function(i) get_entropy_beta(d$prior_beta_a[i], d$prior_beta_b[i])),
     posterior_entropy = map_dbl(1:nrow(d), function(i) get_entropy_beta(d$posterior_beta_a[i], d$posterior_beta_b[i])),
@@ -1117,8 +1036,8 @@ d$BF_beta_sampled <- map_dbl(1:nrow(d), function(i){
                 d[i,'prior_beta_b']|> as.numeric(), 
                 d[i,'posterior_beta_a']|> as.numeric(), 
                 d[i,'posterior_beta_b']|> as.numeric(),  
-                5000) %>% 
-    log() %>% abs() %>% log()
+                5000) |> 
+    log() |> abs() |> log()
 })
 ```
 
@@ -1131,7 +1050,7 @@ $$ |a_{prior} - a_{posterior}| + |b_{prior} - b_{posterior}| $$
 For scaling, we use the log of this measure (and scale it to take only unit values; which is innocent in the context of linear regression).
 
 ```{r}
-d <- d %>% 
+d <- d |> 
   mutate(
     # I don't know anymore why I added the +2 but it does seem to have a positive effect
     BF_beta = log(abs(prior_beta_a - posterior_beta_a) + 
@@ -1143,7 +1062,7 @@ d <- d %>%
 #### Comparing the two different BF beta notions
 
 ```{r}
-d %>% ggplot(aes(x = BF_beta, y = BF_beta_sampled)) +
+d |> ggplot(aes(x = BF_beta, y = BF_beta_sampled)) +
   geom_point() + geom_smooth()
 ```
 
@@ -1152,7 +1071,7 @@ d %>% ggplot(aes(x = BF_beta, y = BF_beta_sampled)) +
 For plotting and subsequent analyses we use some more uniform names:
 
 ```{r}
-d <- d %>% 
+d <- d |> 
   mutate(
     relevance = relevance_sliderResponse,
     ER = entropy_reduction,
@@ -1178,7 +1097,7 @@ predictiveFactors <- c(
   "confidence_diff"
 )
 
-# predFactorMatrix <- d %>% select(predictiveFactors) %>% as.matrix()
+# predFactorMatrix <- d |> select(predictiveFactors) |> as.matrix()
 # 
 # ggcorr(predFactorMatrix, palette = "RdBu")
 ```
@@ -1189,7 +1108,7 @@ And here is another:
 #| warnings: false
 #| message: false
 
-p <- ggpairs(d %>% select(all_of(predictiveFactors), AnswerCertainty),
+p <- ggpairs(d |> select(all_of(predictiveFactors), AnswerCertainty),
         aes(color = AnswerCertainty)) + theme_aida()
 for(i in 1:p$nrow) {
   for(j in 1:p$ncol){
@@ -1207,9 +1126,9 @@ And here is a scatter plot of for predictive measures and observed relevance rat
 #| warnings: false
 #| message: false
 
-d %>% select(all_of(predictiveFactors), AnswerCertainty) %>% 
-  pivot_longer(cols = predictiveFactors[2:length(predictiveFactors)], names_to = 'factor', values_to = "value") %>% 
-  mutate(factor = factor(factor, levels = predictiveFactors[2:length(predictiveFactors)])) %>% 
+d |> select(all_of(predictiveFactors), AnswerCertainty) |> 
+  pivot_longer(cols = predictiveFactors[2:length(predictiveFactors)], names_to = 'factor', values_to = "value") |> 
+  mutate(factor = factor(factor, levels = predictiveFactors[2:length(predictiveFactors)])) |> 
   ggplot(aes(x = value, y = relevance, color = AnswerCertainty)) +
   geom_point(alpha = 0.5) +
   # geom_smooth() +
@@ -1238,19 +1157,19 @@ BFComp_rel_confidence_diff <- lmBF(relevance_sliderResponse ~ confidence_diff, d
 model_names <- c("ER", "KL", "BF", "ER_beta", "KL_beta", "BF_beta", "belief_diff", "confidence_diff")
 
 tibble(
-    ER      = BFComp_rel_ER      %>% as.vector(), 
-    KL      = BFComp_rel_KL      %>% as.vector(), 
-    BF      = BFComp_rel_BF      %>% as.vector(), 
-    ER_beta = BFComp_rel_ER_beta %>% as.vector(), 
-    KL_beta = BFComp_rel_KL_beta %>% as.vector(), 
-    BF_beta = BFComp_rel_BF_beta %>% as.vector(), 
-    belief_diff = BFComp_rel_belief_diff %>% as.vector(), 
-    confidence_diff = BFComp_rel_confidence_diff %>% as.vector() 
-  ) %>% pivot_longer(everything(), names_to = "model", values_to = "relative_BF") %>% 
+    ER      = BFComp_rel_ER      |> as.vector(), 
+    KL      = BFComp_rel_KL      |> as.vector(), 
+    BF      = BFComp_rel_BF      |> as.vector(), 
+    ER_beta = BFComp_rel_ER_beta |> as.vector(), 
+    KL_beta = BFComp_rel_KL_beta |> as.vector(), 
+    BF_beta = BFComp_rel_BF_beta |> as.vector(), 
+    belief_diff = BFComp_rel_belief_diff |> as.vector(), 
+    confidence_diff = BFComp_rel_confidence_diff |> as.vector() 
+  ) |> pivot_longer(everything(), names_to = "model", values_to = "relative_BF") |> 
   mutate(
     # model = fct_reorder(model, relative_BF)
     model = factor(model, rev(model_names))
-  ) %>% 
+  ) |> 
   ggplot(aes(x = model, y = relative_BF)) +
   scale_y_log10() +
   geom_col() +
@@ -1343,7 +1262,7 @@ if (rerun_models) {
     iter = 6000,
     save_pars = save_pars(all = T),
     data = d 
-  ) %>% add_criterion("loo", model_name = "ER", moment_match = T)
+  ) |> add_criterion("loo", model_name = "ER", moment_match = T)
   
   # KL
   fit_loo_KL <- ordbetareg(
@@ -1351,7 +1270,7 @@ if (rerun_models) {
     iter = 6000,
     save_pars = save_pars(all = T),
     data = d 
-  ) %>% add_criterion("loo", model_name = "KL")
+  ) |> add_criterion("loo", model_name = "KL")
   
   # BF
   fit_loo_BF <- ordbetareg(
@@ -1359,7 +1278,7 @@ if (rerun_models) {
     iter = 6000,
     save_pars = save_pars(all = T),
     data = d 
-  ) %>% add_criterion("loo", model_name = "BF")
+  ) |> add_criterion("loo", model_name = "BF")
   
   # ER_beta
   fit_loo_ER_beta <- ordbetareg(
@@ -1367,7 +1286,7 @@ if (rerun_models) {
     iter = 6000,
     save_pars = save_pars(all = T),
     data = d 
-  ) %>% add_criterion("loo", model_name = "ER_beta")
+  ) |> add_criterion("loo", model_name = "ER_beta")
   
   # KL_beta
   fit_loo_KL_beta <- ordbetareg(
@@ -1375,7 +1294,7 @@ if (rerun_models) {
     iter = 6000,
     save_pars = save_pars(all = T),
     data = d 
-  ) %>% add_criterion("loo", model_name = "KL_beta")
+  ) |> add_criterion("loo", model_name = "KL_beta")
   
   # BF_beta
   fit_loo_BF_beta <- ordbetareg(
@@ -1383,7 +1302,7 @@ if (rerun_models) {
     iter = 6000,
     save_pars = save_pars(all = T),
     data = d 
-  ) %>% add_criterion("loo", model_name = "BF_beta")
+  ) |> add_criterion("loo", model_name = "BF_beta")
   
   # belief_diff 
   fit_loo_belief_diff <- ordbetareg(
@@ -1391,7 +1310,7 @@ if (rerun_models) {
     iter = 6000,
     save_pars = save_pars(all = T),
     data = d 
-  ) %>% add_criterion("loo", model_name = "belief_diff")
+  ) |> add_criterion("loo", model_name = "belief_diff")
   
   # confidence_diff 
   fit_loo_confidence_diff <- ordbetareg(
@@ -1399,7 +1318,7 @@ if (rerun_models) {
     iter = 6000,
     save_pars = save_pars(all = T),
     data = d 
-  ) %>% add_criterion("loo", model_name = "confidence_diff")
+  ) |> add_criterion("loo", model_name = "confidence_diff")
   
   write_rds(fit_loo_ER, "cachedModels/fit_loo_ER.rds")
   write_rds(fit_loo_KL, "cachedModels/fit_loo_KL.rds")
@@ -1459,7 +1378,7 @@ tibble(
   ),
   lower = ELPD - SE,
   upper = ELPD + SE
-) %>% 
+) |> 
   ggplot(aes( x = model , y = ELPD)) +
   geom_pointrange(aes(min = lower, max = upper)) +
   coord_flip() +
@@ -1498,15 +1417,15 @@ BFComp_BF_dbl_sampled <- lmBF(relevance_sliderResponse ~ BF * BF_beta_sampled,
 model_names <- c("ER", "KL", "BF", "BF_sampled")
 
 tibble(
-  KL      = BFComp_KL_dbl %>% as.vector(), 
-  ER      = BFComp_ER_dbl %>% as.vector(), 
-  BF      = BFComp_BF_dbl %>% as.vector(),
-  BF_sampled = BFComp_BF_dbl_sampled %>% as.vector()
-) %>% pivot_longer(everything(), names_to = "model", values_to = "relative_BF") %>% 
+  KL      = BFComp_KL_dbl |> as.vector(), 
+  ER      = BFComp_ER_dbl |> as.vector(), 
+  BF      = BFComp_BF_dbl |> as.vector(),
+  BF_sampled = BFComp_BF_dbl_sampled |> as.vector()
+) |> pivot_longer(everything(), names_to = "model", values_to = "relative_BF") |> 
   mutate(
     # model = fct_reorder(model, relative_BF)
     model = factor(model, rev(model_names))
-  ) %>% 
+  ) |> 
   ggplot(aes(x = model, y = relative_BF)) +
   scale_y_log10() +
   geom_col() +
@@ -1526,7 +1445,7 @@ fit_loo_ER <- brm(
   prior = prior(student_t(1, 0, 25), class = "b"),
   sample_prior = T,
   data = d 
-) %>% add_criterion("loo", model_name = "ER")
+) |> add_criterion("loo", model_name = "ER")
 
 # KL
 fit_loo_KL <- brm(
@@ -1535,7 +1454,7 @@ fit_loo_KL <- brm(
   prior = prior(student_t(1, 0, 25), class = "b"),
   sample_prior = T,
   data = d 
-) %>% add_criterion("loo", model_name = "KL")
+) |> add_criterion("loo", model_name = "KL")
 
 # BF
 fit_loo_BF <- brm(
@@ -1544,7 +1463,7 @@ fit_loo_BF <- brm(
   prior = prior(student_t(1, 0, 25), class = "b"),
   sample_prior = T,
   data = d 
-) %>% add_criterion("loo", model_name = "BF")
+) |> add_criterion("loo", model_name = "BF")
 
 # BF (with sampling)
 fit_loo_BF_sampled <- brm(
@@ -1553,7 +1472,7 @@ fit_loo_BF_sampled <- brm(
   prior = prior(student_t(1, 0, 25), class = "b"),
   sample_prior = T,
   data = d 
-) %>% add_criterion("loo", model_name = "BF_sampled")
+) |> add_criterion("loo", model_name = "BF_sampled")
 ```
 
 ```{r}
@@ -1575,7 +1494,7 @@ tibble(
   ),
   lower = ELPD - SE,
   upper = ELPD + SE
-) %>% 
+) |> 
   ggplot(aes( x = model , y = ELPD)) +
   geom_pointrange(aes(min = lower, max = upper)) +
   coord_flip() +
