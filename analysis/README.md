@@ -83,10 +83,11 @@ A complete list of predictors is as follows:
 - Pure second order belief change: `|prior_a + prior_b - (posterior_a + posterior_b)|`
 
 ```bash
-python3 compute_metrics.py --input $RESULTS_DIR/results_filtered.tmp --output $RESULTS_DIR/results_processed.jsonl
+python3 compute_metrics.py --input $RESULTS_DIR/results_filtered.tmp --output $RESULTS_DIR/results_filtered.tmp
 ```
 
-### Step 6: Clean up temp file
+### Step 6: Clean up
 ```bash
+python3 finalize_preprocessing.py --input $RESULTS_DIR/results_filtered.tmp --output $RESULTS_DIR/results_preprocessed.csv
 rm $RESULTS_DIR/results_filtered.tmp
 ```

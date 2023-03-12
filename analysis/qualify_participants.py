@@ -44,13 +44,6 @@ for trial_type, threshold in zip(["attention", "reasoning"], [ATTENTION_PASS_THR
     df_tmp["correct_c"] = df_tmp.apply(lambda x: x["confidence"] <= x["certainty_max"] and x["confidence"] >= x["certainty_min"], axis=1)
     df_tmp = df_tmp[["submission_id", "correct_p", "correct_c"]].set_index("submission_id").stack().droplevel(1)
     df_tmp = pd.DataFrame(df_tmp).pivot_table(index="submission_id", aggfunc=np.mean)
-    print(f"{trial_type} scores:")
-    print(df_tmp[0].value_counts())
-    print()
-    df_qual = df_qual.assign(**{trial_type: df_tmp[0].apply(lambda x: x >= threshold)})
-df_qual["pass"] = df_qual.apply(lambda submission_id: submission_id["attention"] and submission_id["reasoning"], axis=1)    # Define some passing criterion: Right now, it's just both attention and reasoning criteria were passed independently
-df = df.join(df_qual[["pass"]], on="submission_id")
+    df[f'{trial_type}_score'] = df["submission_id"].apply(lambda x: df_tmp.loc[x])
 
-# Reduce results to all who passed, and to only experimental trials
-df = df[df.apply(lambda x: x["TrialType"] == "main" and x["pass"], axis=1)]
 df.to_json(path_or_buf=args.output, orient="records", lines=True)

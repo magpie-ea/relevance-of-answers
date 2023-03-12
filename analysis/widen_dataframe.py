@@ -12,6 +12,8 @@ def wrangle_data(df_long, aggregrate_participants=False, aggregate_group=False):
         'AnswerCertainty',
         'AnswerPolarity',
         'ContextType',
+        'attention_score',
+        'reasoning_score'
     ]
     # Participants and groups can be averaged over by removing column names from 'index'
     # because non-unique rows are aggregated by default in pivot_table
