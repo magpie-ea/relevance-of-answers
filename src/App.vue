@@ -80,7 +80,8 @@ var contextConditions = ['neutral', 'positive', 'negative']
 //   all items are formulated in terms of helpfulness
 //   if group is 'relevance', we substitute the relevant entries either
 //   during the creation of the stimuli or in situ when the material is shown
-var group = _.sample(['helpful', 'relevant']);
+var group = 'relevant'
+//   var group = _.sample(['helpful', 'relevant']);
 
 // creating trial structure
 var vignettes = _.slice(_.shuffle(_.range(1, 13)), 0, 10);

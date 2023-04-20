@@ -18,7 +18,7 @@ TODO: What is the difference between:
 Set your project root before running the following.
 
 ```bash
-RESULTS_DIR=$PROJECT_ROOT/results/round_1.0
+RESULTS_DIR=$PROJECT_ROOT/results/round_2.0
 cd $PROJECT_ROOT/analysis
 ```
 
@@ -32,10 +32,10 @@ The `qualify_participants.py` script implements the following inclusion criteria
    and for each item there is a `probability` and `confidence` values 
    which we check falls within some (predetermined) moderately sized reasonable range.
 
-The `--pilot` flag is not needed unless the analysis includes our own pilot data.
+Use the `--exclude_pilot` or `exclude_round1` flags if you want to exclude that data from the results file.
 
 ```bash
-python3 qualify_participants.py --raw_responses $RESULTS_DIR/results_80_relevance-answers.csv --output $RESULTS_DIR/results_filtered.tmp --pilot
+python3 qualify_participants.py --raw_responses $RESULTS_DIR/results_80_relevance-answers.csv --output $RESULTS_DIR/results_filtered.tmp --exclude_round1
 ```
 
 
@@ -63,7 +63,7 @@ We use sequential least squares to find the values of `a` and `b` that maximize 
 the `beta-KL` measure and the relevance judgments.
 
 ```bash
-python3 fit_beta.py --input $RESULTS_DIR/results_filtered.tmp
+python3 fit_beta.py --training $PROJECT_ROOT/results/round_1.0/results_filtered.tmp --input $RESULTS_DIR/results_filtered.tmp
 ```
 
 ### Step 5: Computing metrics
@@ -83,6 +83,7 @@ A complete list of predictors is as follows:
 - Pure second order belief change: `|prior_a + prior_b - (posterior_a + posterior_b)|`
 
 ```bash
+
 python3 compute_metrics.py --input $RESULTS_DIR/results_filtered.tmp --output $RESULTS_DIR/results_filtered.tmp
 ```
 

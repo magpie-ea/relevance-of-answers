@@ -44,10 +44,12 @@ def objective_function_exp_concentration_map(x, df, metric):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--input")
+    parser.add_argument("--training", help="Path to results file with `training data` for fitting beta parameters (this is probably round 1 data)")
+    parser.add_argument("--input", help="Path to results file with actual official results")
     parser.add_argument("--output", default=None)
     args = parser.parse_args()
 
+    df_train = pd.read_json(args.training, orient="records", lines=True)
     df = pd.read_json(args.input, orient="records", lines=True)
     metrics = {
         "kl": lambda p, q: kl_util_dirichlet(q, p),
@@ -57,13 +59,13 @@ if __name__ == "__main__":
     }
     for metric in metrics:
         print(metric)
-        x = minimize(lambda x: objective_function_exp_concentration_map(x, df, metrics[metric]),
+        x = minimize(lambda x: objective_function_exp_concentration_map(x, df_train, metrics[metric]),
                      method='SLSQP',
                      x0=np.array([1, 2]),
                      bounds=[(0, np.inf), (1, np.inf)]
                      ).x
         print(f"{x[0]} * {x[1]}^c")
-        print(f"best correlation: {-1 * objective_function_exp_concentration_map(x, df, metrics[metric])}")
+        print(f"best correlation: {-1 * objective_function_exp_concentration_map(x, df_train, metrics[metric])}")
         for p in ["prior", "posterior"]:
             df[f"{p}_concentration"] = df[f"{p}_confidence"].apply(lambda c: certainty_linking_function(x, c))
             df[f"{p}_beta_for_{metric}"] = df.apply(lambda x: fit_beta_mode_concentration(x[f"{p}_sliderResponse"], x[f"{p}_concentration"]), axis=1)
