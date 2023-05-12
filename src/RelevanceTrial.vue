@@ -39,7 +39,7 @@
         </p>
       </div>
 
-      <span style="color: gray;">Context:</span> {{ item.Context }}
+      <span style="color: gray">Context:</span> {{ item.Context }}
       <br />
       <br />
       {{ item.YourQuestionIntro }}
@@ -56,7 +56,7 @@
             item.TrialType.includes('reasoning')
           )
         "
-        style="background-color: lightblue; display: inline-block;"
+        style="background-color: lightblue; display: inline-block"
       >
         {{ item.AnswerIntro }}
         <br />
@@ -68,7 +68,7 @@
           !item.TaskType.includes('prior') &&
           item.TrialType.includes('reasoning')
         "
-        style="background-color: lightblue; display: inline-block;"
+        style="background-color: lightblue; display: inline-block"
       >
         <strong>{{ item.Answer }}</strong>
       </div>
@@ -136,15 +136,10 @@
           : item.TaskQuestion.replace('helpful', 'relevant')
       }}</strong>
 
-      <div
-        v-if="
-          item.TaskType.includes('posterior')
-        "
-        style="color: gray;"
-      >
-        [<strong>Reminder</strong>: Previously, you selected
-        probability {{ lastTrial.sliderResponse }}% and commitment
-        level {{ lastTrial.confidence }}.]
+      <div v-if="item.TaskType.includes('posterior')" style="color: gray">
+        [<strong>Reminder</strong>: Previously, you selected probability
+        {{ lastTrial.sliderResponse }}% and commitment level
+        {{ lastTrial.confidence }}.]
       </div>
 
       <SliderInput
@@ -167,7 +162,7 @@
           $magpie.measurements.sliderResponse >= 0 &&
           !item.TaskType.includes('relevance')
         "
-        style="color: gray;"
+        style="color: gray"
       >
         Your selection means that there is around a
         {{ $magpie.measurements.sliderResponse }}% chance that
@@ -178,7 +173,7 @@
           $magpie.measurements.sliderResponse >= 0 &&
           item.TaskType.includes('relevance')
         "
-        style="color: gray;"
+        style="color: gray"
       >
         You selected {{ $magpie.measurements.sliderResponse }} on a scale from 0
         to 100.
@@ -242,15 +237,14 @@
         <div class="callout">
           <p>
             <strong>Instructions:</strong>
-            We now ask you how committed you are to the probability
-            judgment you gave. In the case at hand, the probability is fairly
-            hard to judge, so you may have low commitment to your judgment.
-            Based on just this information, a high probability like 60% or 80%
-            might be the best guess. But the context leaves open a strong
-            possibility that a low probability like 40% or even 10% is more
-            appropriate (for example, if Aaron doesn't consider the Eiffel tower
-            "unmissable"). So maybe you could select a button on the lower end,
-            like 1, 2, or 3.
+            We now ask you how committed you are to the probability judgment you
+            gave. In the case at hand, the probability is fairly hard to judge,
+            so you may have low commitment to your judgment. Based on just this
+            information, a high probability like 60% or 80% might be the best
+            guess. But the context leaves open a strong possibility that a low
+            probability like 40% or even 10% is more appropriate (for example,
+            if Aaron doesn't consider the Eiffel tower "unmissable"). So maybe
+            you could select a button on the lower end, like 1, 2, or 3.
           </p>
         </div>
       </div>
