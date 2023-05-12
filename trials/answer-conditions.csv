@@ -1,8 +1,0 @@
-AnswerCertainty,AnswerPolarity
-exhaustive,negative
-exhaustive,positive
-high_certainty,negative
-high_certainty,positive
-low_certainty,negative
-low_certainty,positive
-non_answer,"N/A"
