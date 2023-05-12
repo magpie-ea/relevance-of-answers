@@ -2,7 +2,7 @@
 
 Experiment to test different notions of (information-theoretic) relevance against human judgements of an answer's helpfulness.
 
-This experiment uses [_magpie](https://magpie-manual.netlify.app/).
+This experiment uses [_magpie](https://magpie-experiments.org).
 
 Clone the repository and set up the project with `npm install`
 
