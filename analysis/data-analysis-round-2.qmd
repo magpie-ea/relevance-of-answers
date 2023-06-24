@@ -715,7 +715,6 @@ Test Hypothesis 2:
 
 ```{r test-hypothesis-2}
 brms::hypothesis(fit_confidence_diff, "second_order_belief_change > 0")
-# TODO: fix warnings for LOO calculation
 loo_comp_hyp2 <- loo_compare(list("w/__confidence" = loo(fit_confidence_diff),
                              "w/o_confidence" = loo(fit_belief_diff)))
 loo_comp_hyp2
@@ -729,15 +728,13 @@ We find support for hypothesis two.
 
 The third hypothesis is that the `bayes_factor_utility` is a better (single-factor, linear) predictor of `relevance_sliderResponse` than `kl_utility` and `entropy_change`.
 We address this hypothesis with LOO cross-validation.
+We also directly include the exploratory hypothesis 1 here, thus comparing *all* single-factor models.
 
 ```{r run-model-with-relevance-notions}
 #| output: false
 #| results: hide
 #| warning: false
 #| message: false
-
-# TODO: make a function for this repetitive non-sense
-
 
 get_single_factor_formula <- function(factor) {
   # get formula for single factor with full RE structure
@@ -913,3 +910,218 @@ Lambert_test(loo_comp)
 Yes, these are substantially different.
 
 We can conclude that first-order BF is the single best predictor of the relevance ratings.
+
+# Addressing the exploratory hypotheses
+
+## Exploratory Hypothesis 2: adding `pure_second_order_belief_change` to all first-order measures 
+
+To complement hypothesis 2, we also test whether adding another measure of higher-order uncertainty change adds predictive performance to each first-order measure of belief change. 
+So here we compare, for each measure $X$ ("entropy change", "KL", and "Bayes factor") for first-order belief change, whether adding the factor `pure_second_order_belief_change` increases the predictive performance.
+Concretely, we compare a model with single factor $X$ as a predictor to a model with predictors $X$, `pure_second_order_belief_change` and teir interaction.
+For ease of fitting, no random effects are included.
+
+First, run the relevant models.
+
+```{r run-models-exploratory-hyp-2}
+#| results: hide
+#| warning: false
+#| message: false
+
+get_formula_two_factors <- function(factor1, factor2) {
+  # brms::brmsformula(
+  #   str_c(
+  #     "relevance_sliderResponse ~ (1 + ", factor1, " + " ,  factor2, " | submission_id)",
+  #     "+ (1 + ", factor1, " + " , factor2, " | StimID) + ", 
+  #     factor1, " * ", factor2))
+  if (factor2 == "") {
+    brms::brmsformula(
+      str_c(
+        "relevance_sliderResponse ~ ", factor1))  
+  } else {
+    brms::brmsformula(
+    str_c(
+      "relevance_sliderResponse ~ ", factor1, " * " ,  factor2))
+  }
+}
+
+# get_formula_two_factors("X", "Y")
+# get_formula_two_factors("X", "")
+
+fit_model_two_factors <- function(name, factor1, factor2) {
+  filename <- paste0(c("cachedModels-round2/", name, ".rds"), collapse = "")
+  if (rerun_models) {
+    x <- ordbetareg(
+      get_formula_two_factors(factor1, factor2),
+      iter = 2000,
+      save_pars = save_pars(all = T),
+      data = d,
+      control = list(adapt_delta = 0.9)
+    ) |> add_criterion("loo", model_name = name, moment_match = T)
+    write_rds(x, filename) 
+    return(x)
+  } else{
+    read_rds(filename) 
+  }
+  
+}
+
+# ER
+fit_expHyp2_ER <- fit_model_two_factors(
+  "fit_expHyp2_ER", 
+  "entropy_change", 
+  "")
+fit_expHyp2_ER_pure <- fit_model_two_factors(
+  "fit_expHyp2_ER_pure", 
+  "entropy_change", 
+  "pure_second_order_belief_change")
+
+
+#KL
+fit_expHyp2_KL <- fit_model_two_factors(
+  "fit_expHyp2_KL", 
+  "kl_utility", 
+  "")
+fit_expHyp2_KL_pure <- fit_model_two_factors(
+  "fit_expHyp2_KL_pure", 
+  "kl_utility", 
+  "pure_second_order_belief_change")
+
+
+#BF
+fit_expHyp2_BF <- fit_model_two_factors(
+  "fit_expHyp2_BF", 
+  "bayes_factor_utility", 
+  "")
+fit_expHyp2_BF_pure <- fit_model_two_factors(
+  "fit_expHyp2_BF_pure", 
+  "bayes_factor_utility", 
+  "pure_second_order_belief_change")
+
+
+```
+
+Then compare the relevant pairs with LOO:
+
+```{r exp-hyp2-loo}
+
+loo_compare(fit_expHyp2_ER, fit_expHyp2_ER_pure)
+loo_compare(fit_expHyp2_KL, fit_expHyp2_KL_pure)
+loo_compare(fit_expHyp2_BF, fit_expHyp2_BF_pure)
+
+```
+
+It appears that for all three measures of first-order belief change, adding `pure_second_order_belief_change` yields a substantially better model.
+
+## Exploratory Hypothesis 3: compare all combinations of first- and second-order measures
+
+Finally, we just compare models with all combinations of first- and second-order measures.
+Questions of interest are: 
+
+1. Which arbitrary combination of first- and second-order measures is the best?
+2. Does it matter to be consistent in the choice of first- and second order measure, i.e., is the performance of "first-order X" always most boosted when we supply it with "second-order X" instead of some other "second-order Y"?
+
+Let's run the models first. For ease of fitting, no random effects are included.
+
+```{r run-models-exploratory-hyp-3}
+#| output: false
+#| results: hide
+#| warning: false
+#| message: false
+
+
+# base-level: ER
+
+fit_loo_ER_ER <- fit_model_two_factors(
+  "fit_loo_ER_ER",  "entropy_change",  "beta_entropy_change")
+
+fit_loo_ER_KL <- fit_model_two_factors(
+  "fit_loo_ER_KL",  "entropy_change",  "beta_kl_utility")
+
+fit_loo_ER_BF <- fit_model_two_factors(
+  "fit_loo_ER_BF",  "entropy_change",  "beta_bayes_factor_utility")
+
+# base-level: KL
+
+fit_loo_KL_ER <- fit_model_two_factors(
+  "fit_loo_KL_ER",  "kl_utility",  "beta_entropy_change")
+
+fit_loo_KL_KL <- fit_model_two_factors(
+  "fit_loo_KL_KL",  "kl_utility",  "beta_kl_utility")
+
+fit_loo_KL_BF <- fit_model_two_factors(
+  "fit_loo_KL_BF",  "kl_utility",  "beta_bayes_factor_utility")
+
+# base-level: BF
+
+fit_loo_BF_ER <- fit_model_two_factors(
+  "fit_loo_BF_ER",  "bayes_factor_utility",  "beta_entropy_change")
+
+fit_loo_BF_KL <- fit_model_two_factors(
+  "fit_loo_BF_KL",  "bayes_factor_utility",  "beta_kl_utility")
+
+fit_loo_BF_BF <- fit_model_two_factors(
+  "fit_loo_BF_BF",  "bayes_factor_utility",  "beta_bayes_factor_utility")
+
+```
+
+Compare all models.
+
+```{r test-exploratory-hypothesis-3-w-loo}
+loo_compare(
+ fit_loo_ER_ER, 
+ fit_loo_ER_KL, 
+ fit_loo_ER_BF, 
+ fit_loo_KL_ER, 
+ fit_loo_KL_KL, 
+ fit_loo_KL_BF,
+ fit_loo_BF_ER, 
+ fit_loo_BF_KL, 
+ fit_loo_BF_BF
+)
+```
+
+Plot results.
+
+```{r plot-loo-results-exp-hyp3}
+
+model_names <- c("ER_ER", "ER_KL", "ER_BF",
+  "KL_ER", "KL_KL", "KL_BF",
+  "BF_ER", "BF_KL", "BF_BF")
+
+tibble(
+  model = factor(model_names, levels = rev(model_names)),
+  ELPD  = c(
+    loo(fit_loo_ER_ER)$estimates['elpd_loo', 'Estimate'],
+    loo(fit_loo_ER_KL)$estimates['elpd_loo', 'Estimate'],
+    loo(fit_loo_ER_BF)$estimates['elpd_loo', 'Estimate'],
+    loo(fit_loo_KL_ER)$estimates['elpd_loo', 'Estimate'],
+    loo(fit_loo_KL_KL)$estimates['elpd_loo', 'Estimate'],
+    loo(fit_loo_KL_BF)$estimates['elpd_loo', 'Estimate'],
+    loo(fit_loo_BF_ER)$estimates['elpd_loo', 'Estimate'],
+    loo(fit_loo_BF_KL)$estimates['elpd_loo', 'Estimate'],
+    loo(fit_loo_BF_BF)$estimates['elpd_loo', 'Estimate']
+  ),
+  SE = c(
+    loo(fit_loo_ER_ER)$estimates['elpd_loo', 'SE'],
+    loo(fit_loo_ER_KL)$estimates['elpd_loo', 'SE'],
+    loo(fit_loo_ER_BF)$estimates['elpd_loo', 'SE'],
+    loo(fit_loo_KL_ER)$estimates['elpd_loo', 'SE'],
+    loo(fit_loo_KL_KL)$estimates['elpd_loo', 'SE'],
+    loo(fit_loo_KL_BF)$estimates['elpd_loo', 'SE'],
+    loo(fit_loo_BF_ER)$estimates['elpd_loo', 'SE'],
+    loo(fit_loo_BF_KL)$estimates['elpd_loo', 'SE'],
+    loo(fit_loo_BF_BF)$estimates['elpd_loo', 'SE']
+  ),
+  lower = ELPD - SE,
+  upper = ELPD + SE
+) |> 
+  ggplot(aes( x = model , y = ELPD)) +
+  geom_pointrange(aes(min = lower, max = upper)) +
+  coord_flip() +
+  xlab("") +
+  ylab("expected log likelihood (LOO-CV)")
+```
+
+It seems that the overall best model in this comparison is the one that uses Bayes-factor based measures consistently. 
+The second-order Bayes-factor based measure also seems to be the best to add to the other first-order measures.
+This also means that it is not the case the "being consisten" in choic of first- and second-order measure is always best.
