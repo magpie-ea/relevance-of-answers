@@ -1,0 +1,6 @@
+comparison,measure,posterior,HDI-low,HDI-high
+negative < neutral,prior,0.9973333333333333,0.292325,1.13467
+neutral < positive,prior,0.9998333333333334,0.5070560000000002,1.5584200000000001
+neutral < negative,prior-confidence,0.9891666666666666,0.131985,1.28468
+negative < positive,prior-confidence,0.7971666666666667,-0.505641,1.2055200000000001
+neutral < positive,prior-confidence,0.9958333333333333,0.347629,1.798132

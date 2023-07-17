@@ -556,7 +556,7 @@ d |>
   ggplot(aes(x = relevance_sliderResponse, color = AnswerPolarity, fill = AnswerPolarity)) +
   facet_grid(AnswerCertainty ~ ContextType , scales = "free") +
   geom_density(alpha = 0.2, linewidth = 1.5) +
-  xlab("relevanve rating") + ylab("")
+  xlab("relevance rating") + ylab("")
 
 ggsave("plots/relevance-ratings.pdf", scale=1.2, width = 10, height=6)
 ```
@@ -949,28 +949,28 @@ tibble(
   xlab("") +
   ylab("expected log likelihood (LOO-CV) ")
 
-ggsave("plots/comparison-single-factors.pdf", scale = 1.2, width = 4, height = 4)
+ggsave("plots/comparison-single-factors.pdf", scale = 0.8, width = 8, height = 4)
 ```
 
 Testing whether there is a substantial difference between the two best models:
 
 ```{r lambert-test-best-models-hyp3}
-loo_comp <- loo_compare(fit_loo_BF, fit_loo_BF_beta)
-loo_comp
-Lambert_test(loo_comp)
+loo_comp_hyp3 <- loo_compare(fit_loo_BF, fit_loo_BF_beta)
+loo_comp_hyp3
+Lambert_test(loo_comp_hyp3)
 ```
 
-No, there is a noteworthy difference.
 
-Testing whether there is a substantial difference between the first and the third best model:
 
-```{r lambert-test-models-first-VS-third-hyp3}
-loo_comp <- loo_compare(fit_loo_BF, fit_loo_ER)
-loo_comp
-Lambert_test(loo_comp)
+```{r results-recording-hyp3}
+# Comparing the best model to the second best model
+myvars["hyp3BFvsBFBetaLOODiff"] <- -1* (loo_comp_hyp3[2,1] |> round(3))
+myvars["hyp3BFvsBFBetaLOOSE"] <- loo_comp_hyp3[2,2] |> round(3)
+myvars["hyp3BFvsBFBetaPValue"] <- Lambert_test(loo_comp_hyp3) |> round(3)
+
 ```
 
-Yes, these are substantially different.
+Yes, there is a noteworthy difference.
 
 We can conclude that first-order BF is the single best predictor of the relevance ratings.
 
@@ -980,7 +980,7 @@ We can conclude that first-order BF is the single best predictor of the relevanc
 
 To complement hypothesis 2, we also test whether adding another measure of higher-order uncertainty change adds predictive performance to each first-order measure of belief change. 
 So here we compare, for each measure $X$ ("entropy change", "KL", and "Bayes factor") for first-order belief change, whether adding the factor `pure_second_order_belief_change` increases the predictive performance.
-Concretely, we compare a model with single factor $X$ as a predictor to a model with predictors $X$, `pure_second_order_belief_change` and teir interaction.
+Concretely, we compare a model with single factor $X$ as a predictor to a model with predictors $X$, `pure_second_order_belief_change` and their interaction.
 For ease of fitting, no random effects are included.
 
 First, run the relevant models.
@@ -1067,13 +1067,28 @@ Then compare the relevant pairs with LOO:
 
 ```{r exp-hyp2-loo}
 
-loo_compare(fit_expHyp2_ER, fit_expHyp2_ER_pure)
-loo_compare(fit_expHyp2_KL, fit_expHyp2_KL_pure)
-loo_compare(fit_expHyp2_BF, fit_expHyp2_BF_pure)
+(loo_c_explHyp2_ER <- loo_compare(fit_expHyp2_ER, fit_expHyp2_ER_pure))
+(loo_c_explHyp2_KL <- loo_compare(fit_expHyp2_KL, fit_expHyp2_KL_pure))
+(loo_c_explHyp2_BF <- loo_compare(fit_expHyp2_BF, fit_expHyp2_BF_pure))
 
 ```
 
 It appears that for all three measures of first-order belief change, adding `pure_second_order_belief_change` yields a substantially better model.
+
+```{r record-results-exploratory-hypothesis-2}
+
+myvars["expHyp2ERLOODiff"] <- -1* (loo_c_explHyp2_ER[2,1] |> round(3))
+myvars["expHyp2ERLOOSE"]   <- loo_c_explHyp2_ER[2,2] |> round(3)
+  
+myvars["expHyp2KLLOODiff"] <-  -1* (loo_c_explHyp2_KL[2,1] |> round(3))
+myvars["expHyp2KLLOOSE"]   <-  loo_c_explHyp2_KL[2,2] |> round(3)
+
+myvars["expHyp2BFLOODiff"] <-  -1* (loo_c_explHyp2_BF[2,1] |> round(3))
+myvars["expHyp2BFLOOSE"]   <-    loo_c_explHyp2_BF[2,2] |> round(3)
+
+```
+
+
 
 ## Exploratory Hypothesis 3: compare all combinations of first- and second-order measures
 
@@ -1092,6 +1107,20 @@ Let's run the models first. For ease of fitting, no random effects are included.
 #| message: false
 
 
+# base-level: pure
+
+fit_loo_pure_ER <- fit_model_two_factors(
+  "fit_loo_pure_ER",  "first_order_belief_change",  "beta_entropy_change")
+
+fit_loo_pure_KL <- fit_model_two_factors(
+  "fit_loo_pure_KL",  "first_order_belief_change",  "beta_kl_utility")
+
+fit_loo_pure_BF <- fit_model_two_factors(
+  "fit_loo_pure_BF",  "first_order_belief_change",  "beta_bayes_factor_utility")
+
+fit_loo_pure_pure <- fit_model_two_factors(
+  "fit_loo_pure_pure",  "first_order_belief_change",  "pure_second_order_belief_change")
+
 # base-level: ER
 
 fit_loo_ER_ER <- fit_model_two_factors(
@@ -1102,6 +1131,9 @@ fit_loo_ER_KL <- fit_model_two_factors(
 
 fit_loo_ER_BF <- fit_model_two_factors(
   "fit_loo_ER_BF",  "entropy_change",  "beta_bayes_factor_utility")
+
+fit_loo_ER_pure <- fit_model_two_factors(
+  "fit_loo_ER_pure",  "entropy_change",  "pure_second_order_belief_change")
 
 # base-level: KL
 
@@ -1114,6 +1146,9 @@ fit_loo_KL_KL <- fit_model_two_factors(
 fit_loo_KL_BF <- fit_model_two_factors(
   "fit_loo_KL_BF",  "kl_utility",  "beta_bayes_factor_utility")
 
+fit_loo_KL_pure <- fit_model_two_factors(
+  "fit_loo_KL_pure",  "kl_utility",  "pure_second_order_belief_change")
+
 # base-level: BF
 
 fit_loo_BF_ER <- fit_model_two_factors(
@@ -1125,21 +1160,31 @@ fit_loo_BF_KL <- fit_model_two_factors(
 fit_loo_BF_BF <- fit_model_two_factors(
   "fit_loo_BF_BF",  "bayes_factor_utility",  "beta_bayes_factor_utility")
 
+fit_loo_BF_pure <- fit_model_two_factors(
+  "fit_loo_BF_pure",  "bayes_factor_utility",  "pure_second_order_belief_change")
+
 ```
 
 Compare all models.
 
 ```{r test-exploratory-hypothesis-3-w-loo}
 loo_compare(
+ fit_loo_pure_ER, 
+ fit_loo_pure_KL, 
+ fit_loo_pure_BF, 
+ fit_loo_pure_pure,
  fit_loo_ER_ER, 
  fit_loo_ER_KL, 
  fit_loo_ER_BF, 
+ fit_loo_ER_pure,
  fit_loo_KL_ER, 
  fit_loo_KL_KL, 
  fit_loo_KL_BF,
+ fit_loo_KL_pure,
  fit_loo_BF_ER, 
  fit_loo_BF_KL, 
- fit_loo_BF_BF
+ fit_loo_BF_BF,
+ fit_loo_BF_pure
 )
 ```
 
@@ -1147,33 +1192,67 @@ Plot results.
 
 ```{r plot-loo-results-exp-hyp3}
 
-model_names <- c("ER_ER", "ER_KL", "ER_BF",
-  "KL_ER", "KL_KL", "KL_BF",
-  "BF_ER", "BF_KL", "BF_BF")
+model_names <- c(
+ "pure + ER   ", "pure + KL   ", "pure + BF   ", "pure + pure ",
+ "  ER + ER   ", "  ER + KL   ", "  ER + BF   ", "  ER + pure ",
+ "  KL + ER   ", "  KL + KL   ", "  KL + BF   ", "  KL + pure ",
+ "  BF + ER   ", "  BF + KL   ", "  BF + BF   ", "  BF + pure "
+  )
+
+
+
+# model_names <- c(
+#   "1st: ER  2nd: ER  ", 
+#   "1st: ER  2nd: KL  ", 
+#   "1st: ER  2nd: BF  ", 
+#   "1st: ER  2nd: pure",
+#   "1st: KL  2nd: ER  ", 
+#   "1st: KL  2nd: KL  ", 
+#   "1st: KL  2nd: BF  ", 
+#   "1st: KL  2nd: pure",
+#   "1st: BF  2nd: ER  ", 
+#   "1st: BF  2nd: KL  ", 
+#   "1st: BF  2nd: BF  ", 
+#   "1st: BF  2nd: pure"
+#   )
 
 tibble(
   model = factor(model_names, levels = rev(model_names)),
   ELPD  = c(
+    loo(fit_loo_pure_ER)$estimates['elpd_loo', 'Estimate'],
+    loo(fit_loo_pure_KL)$estimates['elpd_loo', 'Estimate'],
+    loo(fit_loo_pure_BF)$estimates['elpd_loo', 'Estimate'],
+    loo(fit_loo_pure_pure)$estimates['elpd_loo', 'Estimate'],
     loo(fit_loo_ER_ER)$estimates['elpd_loo', 'Estimate'],
     loo(fit_loo_ER_KL)$estimates['elpd_loo', 'Estimate'],
     loo(fit_loo_ER_BF)$estimates['elpd_loo', 'Estimate'],
+    loo(fit_loo_ER_pure)$estimates['elpd_loo', 'Estimate'],
     loo(fit_loo_KL_ER)$estimates['elpd_loo', 'Estimate'],
     loo(fit_loo_KL_KL)$estimates['elpd_loo', 'Estimate'],
     loo(fit_loo_KL_BF)$estimates['elpd_loo', 'Estimate'],
+    loo(fit_loo_KL_pure)$estimates['elpd_loo', 'Estimate'],
     loo(fit_loo_BF_ER)$estimates['elpd_loo', 'Estimate'],
     loo(fit_loo_BF_KL)$estimates['elpd_loo', 'Estimate'],
-    loo(fit_loo_BF_BF)$estimates['elpd_loo', 'Estimate']
+    loo(fit_loo_BF_BF)$estimates['elpd_loo', 'Estimate'],
+    loo(fit_loo_BF_pure)$estimates['elpd_loo', 'Estimate']
   ),
   SE = c(
+    loo(fit_loo_pure_ER)$estimates['elpd_loo', 'SE'],
+    loo(fit_loo_pure_KL)$estimates['elpd_loo', 'SE'],
+    loo(fit_loo_pure_BF)$estimates['elpd_loo', 'SE'],
+    loo(fit_loo_pure_pure)$estimates['elpd_loo', 'SE'],
     loo(fit_loo_ER_ER)$estimates['elpd_loo', 'SE'],
     loo(fit_loo_ER_KL)$estimates['elpd_loo', 'SE'],
     loo(fit_loo_ER_BF)$estimates['elpd_loo', 'SE'],
+    loo(fit_loo_ER_pure)$estimates['elpd_loo', 'SE'],
     loo(fit_loo_KL_ER)$estimates['elpd_loo', 'SE'],
     loo(fit_loo_KL_KL)$estimates['elpd_loo', 'SE'],
     loo(fit_loo_KL_BF)$estimates['elpd_loo', 'SE'],
+    loo(fit_loo_KL_pure)$estimates['elpd_loo', 'SE'],
     loo(fit_loo_BF_ER)$estimates['elpd_loo', 'SE'],
     loo(fit_loo_BF_KL)$estimates['elpd_loo', 'SE'],
-    loo(fit_loo_BF_BF)$estimates['elpd_loo', 'SE']
+    loo(fit_loo_BF_BF)$estimates['elpd_loo', 'SE'],
+    loo(fit_loo_BF_pure)$estimates['elpd_loo', 'SE']
   ),
   lower = ELPD - SE,
   upper = ELPD + SE
@@ -1182,12 +1261,28 @@ tibble(
   geom_pointrange(aes(min = lower, max = upper)) +
   coord_flip() +
   xlab("") +
-  ylab("expected log likelihood (LOO-CV)")
+  ylab("expected log likelihood (LOO-CV)") +
+  theme(axis.text.y = element_text(family = "mono"))
+
+ggsave("plots/comparison-exploratory-hyp3.pdf", scale = 1, width = 8, height = 4)
 ```
+
+```{r record-results-expl-hyp-3}
+
+(loo_comp_explHyp3 <- loo_compare(loo(fit_loo_BF_BF), loo(fit_loo_BF_pure)))
+
+myvars["explHyp3LOODiff"] <- -1* (loo_comp_explHyp3[2,1] |> round(3))
+myvars["explHyp3LOOSE"] <- loo_comp_explHyp3[2,2] |> round(3)
+myvars["explHyp3PValue"] <- Lambert_test(loo_comp_explHyp3) |> round(3)
+
+```
+
 
 It seems that the overall best model in this comparison is the one that uses Bayes-factor based measures consistently. 
 The second-order Bayes-factor based measure also seems to be the best to add to the other first-order measures.
 This also means that it is not the case the "being consisten" in choic of first- and second-order measure is always best.
+
+# Saving variables for LaTeX
 
 ```{r}
 #| include: false

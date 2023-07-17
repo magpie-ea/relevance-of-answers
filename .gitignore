@@ -60,3 +60,4 @@ results/beta
 .DS_store
 *.rds
 *.Rds
+package-lock.json
