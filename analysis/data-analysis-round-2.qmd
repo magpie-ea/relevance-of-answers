@@ -913,3 +913,54 @@ Lambert_test(loo_comp)
 Yes, these are substantially different.
 
 We can conclude that first-order BF is the single best predictor of the relevance ratings.
+
+
+Now we want to visualize all results:
+```{r}
+library(viridis)
+```
+
+
+```{r}
+d |> 
+    ggplot(aes(x = prior_sliderResponse, y = posterior_sliderResponse, color = relevance_sliderResponse))  +
+    geom_point(size = 3, alpha = 0.5) + 
+    scale_color_viridis()
+```
+And let's zoom in on some interesting spots:
+```{r}
+d |> 
+    ggplot(aes(x = prior_sliderResponse, y = posterior_sliderResponse, color = relevance_sliderResponse))  +
+    geom_jitter(width = 0.01, height = 0.01, size = 3, alpha = 0.7) + 
+    scale_color_viridis() + 
+    coord_cartesian(xlim = c(0, 0.25), ylim = c(0, 0.25))
+```
+Note: redo these plots but show delta of relevance_sliderResponse and BF etc.
+
+
+And we do the same thing with the confidence ratings
+TODO: Sanity check whether condition with high bias prior and contradictory answer lead to decrease in confidence.
+```{r}
+d |> 
+    ggplot(aes(x = prior_confidence, y = posterior_confidence, color = relevance_sliderResponse))  +
+    geom_jitter(width = 0.4, height = 0.4, size = 3, alpha = 0.4) + 
+    scale_color_viridis()
+```
+And now we can plot delta confidence and delta probability as x and y
+TODO: try removing non-answers from these (and other) plots
+```{r}
+d |> 
+    ggplot(aes(x = first_order_belief_change, y = second_order_belief_change, color = relevance_sliderResponse))  +
+    geom_jitter(width = 0.0, height = 0.3, size = 3, alpha = 0.4) + 
+    scale_color_viridis()
+```
+
+
+
+```{r}
+d |> 
+    ggplot(aes(x = first_order_belief_change, y = second_order_belief_change, color = relevance_sliderResponse))  +
+    geom_jitter(width = 0.01, height = 0.3, size = 3, alpha = 0.4) + 
+    scale_color_viridis() + 
+    coord_cartesian(xlim = c(-0.01, 0.15), ylim = c(-0.3, 4))
+```
