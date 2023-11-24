@@ -14,6 +14,21 @@ editor:
     wrap: sentence
 ---
 
+
+```{python}
+# before running:
+# pip install plotly
+import plotly.express as px
+import plotly.graph_objects as go
+
+df = px.data.gapminder().query("continent=='Oceania'")
+
+fig = px.line(df, x="year", y="lifeExp", color="country", title="layout.hovermode='closest' (the default)")
+fig.update_traces(mode="markers+lines")
+
+fig.show()
+```
+
 ## Preamble
 
 I drop the `group` column (`relevant` vs `helpful`) since we found no difference.
@@ -33,9 +48,13 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 
-relevance_dir = Path(__file__).resolve().parent.parent
+mypath = '/home/omarsagha/code/relevance-of-answers/qualitative-analysis/qualitative-analysis.html'
+
+relevance_dir = Path(mypath).resolve().parent.parent
 # INPUT
 data_path = relevance_dir / 'qualitative-analysis' / 'data' / 'by_item_with_stimuli.csv'
+
+d = pd.read_csv(data_path)
 ```
 
 ```{python}
@@ -80,6 +99,27 @@ def compare_cols(df, query, cols):
         lambda s: display_stimulus(s) + format_responses(s, cols), 
         axis=1))
     return '\n\n'.join(dict(tmp).values())
+d = d.assign(
+    stimulus=lambda s: display_stimulus(s),
+    axis=1)
+d['stimulus']
+```
+
+```{python}
+fig = px.scatter(d,
+    x='pri_q50',
+    y='pos_q50',
+    color='rel_q50',
+    hover_data=['stimulus'],
+)
+# fig = go.Scatter(
+#     ???,
+#     custom_data=d.stimulus,
+#     hovertemplate='{custom_data}',
+#     )
+# fig.update_traces(mode="markers+lines")
+
+fig.show()
 ```
 
 ## Extreme examples
