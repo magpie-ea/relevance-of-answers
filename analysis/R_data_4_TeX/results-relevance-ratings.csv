@@ -1,0 +1,7 @@
+comparison,measure,posterior,HDI (low),HDI (high)
+non-answer < low certainty,relevance,1,1.8158322333333334,2.49524216
+low certain < high certain,relevance,0.9985,0.2082523333333336,0.9073743666666667
+high certain < exhaustive,relevance,1,0.960305333333333,1.8931581666666673
+answer: pos < neg,relevance,0.42625,-0.30573777777777833,0.2491692222222217
+context: neutral > pos,relevance,0.97925,-0.0037563571428571585,0.2987855714285712
+context: neutral > neg,relevance,0.87575,-0.060320114285714155,0.21363599999999983

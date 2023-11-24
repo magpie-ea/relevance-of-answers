@@ -57,3 +57,7 @@ analysis/data-exploration-writeup_files
 
 # beta-testing results
 results/beta
+.DS_store
+*.rds
+*.Rds
+package-lock.json

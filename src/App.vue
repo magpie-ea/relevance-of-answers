@@ -20,20 +20,20 @@
       This experiment presents 15 scenarios with a short dialogue.<br /><br />
       Your task is to read the scenarios, and share some of your judgments about
       them.<br /><br />
-      <strong>Caveat:</strong> The experiment contains attention check trials. If you read carefully all of the text necessary to complete a trial, you will recognize the attention trials, because they tell you directly what you need to do in order to pass them.<br /><br />
+      <strong>Caveat:</strong> The experiment contains attention check trials.
+      If you read carefully all of the text necessary to complete a trial, you
+      will recognize the attention trials, because they tell you directly what
+      you need to do in order to pass them.<br /><br />
       The experiment will take 15-20 minutes to complete.<br /><br />
-
     </InstructionScreen>
 
-    <InstructionScreen
-      :title="'Instructions'"
-      >
+    <InstructionScreen :title="'Instructions'">
       You’ll judge the probability of a statement being true, and then judge it
       again after receiving additional information. Both times you’ll also be
       asked to rate your level of commitment to your judgment. Finally you'll be
       asked how {{ group == 'helpful' ? 'helpful' : 'relevant' }} the additional
       information was.
-      <br>
+      <br />
       Let us start with a practice trial to make you familiar with this task.
       <br /><br /><br /><br /><br />
     </InstructionScreen>
@@ -61,7 +61,7 @@
     <PostTestScreen />
 
     <!-- <DebugResultsScreen /> -->
-    <SubmitResultsScreen/>
+    <SubmitResultsScreen />
   </Experiment>
 </template>
 
@@ -73,26 +73,32 @@ import practiceItems from '../trials/practice_stimuli.csv';
 import answerConditions from '../trials/answer-conditions.csv';
 import _ from 'lodash';
 
-var contextConditions = ['neutral', 'positive', 'negative']
+var contextConditions = ['neutral', 'positive', 'negative'];
 
 // group allocation: 'helpful' vs 'relevant'
 //   whether participants see questions regarding helpfulness or relevance
 //   all items are formulated in terms of helpfulness
 //   if group is 'relevance', we substitute the relevant entries either
 //   during the creation of the stimuli or in situ when the material is shown
-var group = 'relevant'
+var group = 'relevant';
 //   var group = _.sample(['helpful', 'relevant']);
 
 // creating trial structure
 var vignettes = _.slice(_.shuffle(_.range(1, 13)), 0, 10);
-var vAnswerConditions = _.shuffle(_.range(0, 7).concat(_.slice(_.shuffle(_.range(0, 7)), 0, 3)));
-var vContextConditions = _.shuffle([0,0,0,1,1,1,2,2,2]).concat([_.sample([0,1,2])])
+var vAnswerConditions = _.shuffle(
+  _.range(0, 7).concat(_.slice(_.shuffle(_.range(0, 7)), 0, 3))
+);
+var vContextConditions = _.shuffle([0, 0, 0, 1, 1, 1, 2, 2, 2]).concat([
+  _.sample([0, 1, 2])
+]);
 var mainItems = _.flatMap(_.range(0, 10), function (i) {
   return _.filter(relevanceItems, function (o) {
     return (
       o.StimID == vignettes[i] &&
-      o.AnswerCertainty == answerConditions[vAnswerConditions[i]].AnswerCertainty &&
-      o.AnswerPolarity == answerConditions[vAnswerConditions[i]].AnswerPolarity &&
+      o.AnswerCertainty ==
+        answerConditions[vAnswerConditions[i]].AnswerCertainty &&
+      o.AnswerPolarity ==
+        answerConditions[vAnswerConditions[i]].AnswerPolarity &&
       o.ContextType == contextConditions[vContextConditions[i]]
     );
   });
