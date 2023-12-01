@@ -14,21 +14,6 @@ editor:
     wrap: sentence
 ---
 
-
-```{python}
-# before running:
-# pip install plotly
-import plotly.express as px
-import plotly.graph_objects as go
-
-df = px.data.gapminder().query("continent=='Oceania'")
-
-fig = px.line(df, x="year", y="lifeExp", color="country", title="layout.hovermode='closest' (the default)")
-fig.update_traces(mode="markers+lines")
-
-fig.show()
-```
-
 ## Preamble
 
 I drop the `group` column (`relevant` vs `helpful`) since we found no difference.
