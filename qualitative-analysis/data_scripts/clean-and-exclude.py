@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 
 # Set filepaths.
-relevance_dir = Path(__file__).resolve().parent.parent
+relevance_dir = Path(__file__).resolve().parent.parent.parent
 
 round2_results_path = relevance_dir / 'results' / 'round_2.0' / 'results_preprocessed.csv'
 data_with_exclusions_path = relevance_dir / 'qualitative-analysis' / 'data' / 'included_data.csv'

@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 
-relevance_dir = Path(__file__).resolve().parent.parent
+relevance_dir = Path(__file__).resolve().parent.parent.parent
 # INPUT
 data_with_exclusions_path = relevance_dir / 'qualitative-analysis' / 'data' / 'included_data.csv'
 
@@ -39,7 +39,6 @@ first_order_cols = [
     'kl_utility',
     'bayes_factor_utility',
 ]
-
 second_order_cols = [
     'posterior_confidence',
     'prior_confidence', 
@@ -48,6 +47,8 @@ second_order_cols = [
     'beta_kl_utility',
     'beta_bayes_factor_utility',
     'pure_second_order_belief_change',
+]
+beta_params = [
     'prior_beta_for_kl_a',
     'prior_beta_for_kl_b',
     'posterior_beta_for_kl_a',
@@ -67,9 +68,9 @@ second_order_cols = [
 ]
 
 # Check that the partition is exhaustive.
-assert(set(d.columns) == set(dropped_cols + group_by_cols + first_order_cols + second_order_cols))
+assert(set(d.columns) == set(dropped_cols + group_by_cols + first_order_cols + second_order_cols + beta_params))
 
-# Rename columns of interest (all first order).
+# Rename columns of interest
 first_order_col_renames = {
     'posterior_sliderResponse'  : 'pos',
     'prior_sliderResponse'      : 'pri',
@@ -79,6 +80,16 @@ first_order_col_renames = {
     'kl_utility'                : 'klu',
     'bayes_factor_utility'      : 'bfu',
 }
+second_order_col_renames = {
+    'posterior_confidence': 'conf_pos',
+    'prior_confidence': 'conf_pri',
+    'second_order_belief_change': '2o_bch',
+    'beta_entropy_change': 'beta_ech',
+    'beta_kl_utility': 'beta_klu',
+    'beta_bayes_factor_utility': 'beta_bfu',
+    'pure_second_order_belief_change': 'beta_bch',
+}
+new_col_names = list(first_order_col_renames.values()) + list(second_order_col_renames.values())
 
 # Treat categorical columns as categorical.
 d = d.astype(
@@ -103,11 +114,11 @@ def combine_dicts(list_of_dicts):
        single_dict.update(d)
     return single_dict
 
-def first_order_summary_stats(grp: pd.DataFrame) -> pd.Series:
+def summary_stats(grp: pd.DataFrame) -> pd.Series:
     '''
-    Calcuate summary stats for each first-order measure.
+    Calcuate summary stats for each measure.
     '''
-    cols = list(first_order_col_renames.values())
+    cols = new_col_names
     return pd.Series(combine_dicts(
         [{
         # Computations that don't require looping over cols.
@@ -120,7 +131,7 @@ def first_order_summary_stats(grp: pd.DataFrame) -> pd.Series:
             col: sorted(list(grp[col])),
             col + '_min': grp[col].min(),
             col + '_q25': grp[col].quantile(0.25),
-            # col + '_mean': grp[col].mean(),
+            col + '_mean': grp[col].mean(),
             col + '_q50': grp[col].quantile(0.50),
             col + '_q75': grp[col].quantile(0.75),
             col + '_max': grp[col].max(),
@@ -131,9 +142,11 @@ def first_order_summary_stats(grp: pd.DataFrame) -> pd.Series:
 # AnswerPolarity, ContextType). 
 d = (d
     # Select columns of interest.
-    .loc[:,(group_by_cols + first_order_cols)]
+    .loc[:,(group_by_cols + first_order_cols + second_order_cols)]
     # Rename first-order measures to shorter names.
     .rename(columns=first_order_col_renames)
+    # Rename second-order measures.
+    .rename(columns=second_order_col_renames)
     # Group by `group_by_cols` (StimID, AnswerCertainty,
     # AnswerPolarity, ContextType).
     .groupby(
@@ -142,7 +155,7 @@ d = (d
         as_index=False,
     )
     # Get summary stats as columns.
-    .apply(first_order_summary_stats)
+    .apply(summary_stats)
     .dropna()
 )
 

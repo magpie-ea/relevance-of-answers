@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 
-relevance_dir = Path(__file__).resolve().parent.parent
+relevance_dir = Path(__file__).resolve().parent.parent.parent
 # INPUT
 data_by_item_path = relevance_dir / 'qualitative-analysis' / 'data' / 'by_item.csv'
 relevance_stimuli_path = relevance_dir / 'trials' / 'relevance_stimuli.csv'
