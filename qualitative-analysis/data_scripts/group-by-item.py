@@ -81,13 +81,13 @@ first_order_col_renames = {
     'bayes_factor_utility'      : 'bfu',
 }
 second_order_col_renames = {
-    'posterior_confidence': 'conf_pos',
-    'prior_confidence': 'conf_pri',
-    'second_order_belief_change': '2o_bch',
-    'beta_entropy_change': 'beta_ech',
-    'beta_kl_utility': 'beta_klu',
-    'beta_bayes_factor_utility': 'beta_bfu',
-    'pure_second_order_belief_change': 'beta_bch',
+    'posterior_confidence'              : 'conf_pos',
+    'prior_confidence'                  : 'conf_pri',
+    'second_order_belief_change'        : '2ord_bch',
+    'beta_entropy_change'               : 'beta_ech',
+    'beta_kl_utility'                   : 'beta_klu',
+    'beta_bayes_factor_utility'         : 'beta_bfu',
+    'pure_second_order_belief_change'   : 'beta_bch',
 }
 new_col_names = list(first_order_col_renames.values()) + list(second_order_col_renames.values())
 
@@ -129,9 +129,9 @@ def summary_stats(grp: pd.DataFrame) -> pd.Series:
         # for one input column
         {
             col: sorted(list(grp[col])),
+            col + '_mean': grp[col].mean(),
             col + '_min': grp[col].min(),
             col + '_q25': grp[col].quantile(0.25),
-            col + '_mean': grp[col].mean(),
             col + '_q50': grp[col].quantile(0.50),
             col + '_q75': grp[col].quantile(0.75),
             col + '_max': grp[col].max(),
