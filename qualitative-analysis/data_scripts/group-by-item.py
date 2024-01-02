@@ -7,6 +7,7 @@ relevance_dir = Path(__file__).resolve().parent.parent.parent
 data_with_exclusions_path = relevance_dir / 'qualitative-analysis' / 'data' / 'included_data.csv'
 
 # OUTPUT
+data_by_response_path = relevance_dir / 'qualitative-analysis' / 'data' / 'by_response.csv'
 data_by_item_path = relevance_dir / 'qualitative-analysis' / 'data' / 'by_item.csv'
 
 # Read the round 2 data with exclusions applied.
@@ -100,8 +101,26 @@ d = d.astype(
     'ContextType': 'category',
     }
 )
+# Set new column names
+d = (d
+    # Select columns of interest.
+    .loc[:,(['submission_id'] + group_by_cols + first_order_cols + second_order_cols)]
+    # Rename first-order measures to shorter names.
+    .rename(columns=first_order_col_renames)
+    # Rename second-order measures.
+    .rename(columns=second_order_col_renames)
+)
 
-## Functions for getting stats.
+## Add ranks
+for col_name in new_col_names:
+    rank_col_name = col_name + '_rank'
+    d[rank_col_name] = d[col_name].rank()
+
+
+
+d.to_csv(data_by_response_path, index=False)
+
+## Functions for getting aggregate stats.
 
 def combine_dicts(list_of_dicts):
     '''
@@ -130,6 +149,7 @@ def summary_stats(grp: pd.DataFrame) -> pd.Series:
         {
             col: sorted(list(grp[col])),
             col + '_mean': grp[col].mean(),
+            col + '_mean_rank': grp[col+'_rank'].mean(),
             col + '_min': grp[col].min(),
             col + '_q25': grp[col].quantile(0.25),
             col + '_q50': grp[col].quantile(0.50),
@@ -141,12 +161,6 @@ def summary_stats(grp: pd.DataFrame) -> pd.Series:
 # Group by `group_by_cols` (StimID, AnswerCertainty,
 # AnswerPolarity, ContextType). 
 d = (d
-    # Select columns of interest.
-    .loc[:,(group_by_cols + first_order_cols + second_order_cols)]
-    # Rename first-order measures to shorter names.
-    .rename(columns=first_order_col_renames)
-    # Rename second-order measures.
-    .rename(columns=second_order_col_renames)
     # Group by `group_by_cols` (StimID, AnswerCertainty,
     # AnswerPolarity, ContextType).
     .groupby(

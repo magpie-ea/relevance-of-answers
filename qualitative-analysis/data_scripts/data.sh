@@ -4,3 +4,4 @@ python3 clean-and-exclude.py
 python3 group-by-item.py
 # take by_item.csv and create by_item_with_stimuli.csv
 python3 merge-stimuli.py
+python3 dashboard_preprocessing.py

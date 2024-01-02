@@ -1,5 +1,7 @@
 import plotly.express as px
 
+FONT_SIZE = '12px'
+
 # COLORS AND STYLES
 default_color_scale = 'sunsetdark'
 named_color_scales = list(px.colors.named_colorscales())
@@ -20,7 +22,16 @@ red_button_style = dict(button_style.items() | {
     'background-color': 'red',
     'color': 'white',}.items())
 
-dropdown_style = {'background-color':'white', 'color':'black'}
+dropdown_style = {
+    'background-color':'white', 
+    'color':'black',
+    'font-size': FONT_SIZE,
+    'height': '37px',
+    'option-height': '15px'}
+
+radio_style = {
+    'font-size': FONT_SIZE,
+}
 
 SIDEBAR_STYLE = {
     "position": "fixed",

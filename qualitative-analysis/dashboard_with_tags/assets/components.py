@@ -4,7 +4,6 @@ import dash_bootstrap_components as dbc
 import plotly.express as px
 from assets import styles
 
-
 def build_navbar(brand, pages):
     return dbc.NavbarSimple(
     children=[
@@ -36,6 +35,23 @@ def build_dropdown_row(menus_list, label_flag=False):
             build_dropdown_menu(menu)
         ]) for menu in menus_list ]
     return menus_html
+
+def build_radio_menu(menu):
+    return dbc.RadioItems(id=menu['id'], 
+                        options=menu['options'], 
+                        value=menu['value'],
+                        style=styles.radio_style,
+                        inline=True,)
+
+def build_radio_row(menus_list, label_flag=False):
+    style = {'width' : '15%'}
+    menus_html =[
+        html.Div(style=style, children=[
+            maybe_label(menu, label_flag),
+            build_radio_menu(menu)
+        ]) for menu in menus_list ]
+    return menus_html
+
 
 def build_button_row(buttons_list):
     style = {'width': '15%'}

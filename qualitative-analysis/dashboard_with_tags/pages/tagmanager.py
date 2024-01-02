@@ -4,10 +4,8 @@ import dash_bootstrap_components as dbc
 from assets import data
 import json
 
-d = data.d
-
-
 layout = html.Div(children=[
+    dbc.Label('Choose tag:'),
     dbc.RadioItems(id='tag-menu', inline=True),
     dbc.Label('Choose item:'),
     dbc.RadioItems(id='item-menu', inline=True),
@@ -56,10 +54,9 @@ def update_highlighted_tag(tag_menu_value):
 @dash.callback(
     Output('displayed-item-text', 'children'),
     Input('item-menu', 'value'),
-    # prevent_initial_call=True,
 )
 def display_current_item(item_menu_value):
-    stim_text = d.query('rowlabel == @item_menu_value').stimulus
+    stim_text = data.items.query('rowlabel == @item_menu_value').stimulus
     return stim_text
 
 
