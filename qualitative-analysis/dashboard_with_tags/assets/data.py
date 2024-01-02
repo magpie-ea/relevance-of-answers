@@ -5,9 +5,11 @@ relevance_dir = Path(__file__).resolve().parent.parent.parent.parent
 
 data_by_item_path = relevance_dir / 'qualitative-analysis' / 'data' / 'items_for_dashboard.csv'
 data_by_response_path = relevance_dir / 'qualitative-analysis' / 'data' / 'responses_for_dashboard.csv'
+data_path = relevance_dir / 'qualitative-analysis' / 'data' / 'processed_data_with_stimuli.csv'
 
 TAGS_FILE_PATH = relevance_dir / 'qualitative-analysis' / 'data' / 'saved_tags.txt'
 
+d = pd.read_csv(data_path)
 items = pd.read_csv(data_by_item_path)
 responses = pd.read_csv(data_by_response_path)
 
@@ -68,4 +70,13 @@ list_of_stats = [
     'q50',
     'q75',
     'max',
+]
+
+stats = [
+    'Score',
+    'Rank',
+    'Rank Diff',
+    'Mean Score',
+    'Mean Rank',
+    'Mean Rank Diff',
 ]

@@ -7,7 +7,7 @@ import json
 PLOT_TEMPLATE = 'plotly_dark'
 
 dropdown_cols = data.col_names
-item_stats = data.list_of_stats
+dropdown_item_stats = data.list_of_stats
 response_stats = [
     {'value': '', 'label': 'Raw', 'disabled': False},
     {'value': '_rank', 'label' : 'Rank', 'disabled': False}]
@@ -37,15 +37,15 @@ dropdown_settings = [
 dropdown_item_stats = [
       {'id': 'x-stat-items',
      'Label': 'X Stat:',
-     'options': item_stats,
+     'options': dropdown_item_stats,
      'value': 'mean'},
     {'id': 'y-stat-items',
      'Label': 'Y Stat:',
-     'options': item_stats,
+     'options': dropdown_item_stats,
      'value': 'mean'},
     {'id': 'color-stat-items',
      'Label': 'Color Stat:',
-     'options': item_stats,
+     'options': dropdown_item_stats,
      'value': 'mean'},
 ]
 dropdown_response_stats = [
@@ -74,7 +74,7 @@ dropdown_filter_content = [
      'options': dropdown_cols,
      'value': 'rel'},
     {'id': 'condition-stat-1',
-     'options': item_stats,
+     'options': dropdown_item_stats,
      'value': 'q75'},
     {'id': 'comparison-op',
      'options': ['<', '>'],
@@ -83,7 +83,7 @@ dropdown_filter_content = [
      'options': dropdown_cols,
      'value': 'rel'},
     {'id': 'condition-stat-2',
-     'options': item_stats,
+     'options': dropdown_item_stats,
      'value': 'q25'}
 ]
 filter_button = [

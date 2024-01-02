@@ -4,24 +4,37 @@ from pathlib import Path
 
 relevance_dir = Path(__file__).resolve().parent.parent.parent
 # INPUT
-data_with_exclusions_path = relevance_dir / 'qualitative-analysis' / 'data' / 'included_data.csv'
+included_data_path = relevance_dir / 'qualitative-analysis' / 'data' / 'included_data.csv'
 
 # OUTPUT
-data_by_response_path = relevance_dir / 'qualitative-analysis' / 'data' / 'by_response.csv'
-data_by_item_path = relevance_dir / 'qualitative-analysis' / 'data' / 'by_item.csv'
+processed_data_path = relevance_dir / 'qualitative-analysis' / 'data' / 'processed_data.csv'
+
+# Augment dataframe with markdown-formatted stimulus text.
+def format_stimulus(s):
+    '''
+    Take a row s in the dataframe and 
+    return a markdown string with the 
+    context/answer conditions and the stimulus text.
+    '''
+    out = f'RowID: **`{s.rowlabel}`**\n\nAnswerCertainty: **`{s.AnswerCertainty}`**\n\nAnswerPolarity: **`{s.AnswerPolarity}`**\n\nContextType: **`{s.ContextType}`**\n\n'
+    out += f'{s.Context}\n\n{s.YourQuestionIntro} **{s.YourQuestion}**\n\n{s.AnswerIntro} **{s.Answer}**'
+    return out
 
 # Read the round 2 data with exclusions applied.
-d = pd.read_csv(data_with_exclusions_path)
+d = pd.read_csv(included_data_path)
 
-# Drop column `group` (`relevant` vs `helpful`)
-# since we found it makes no difference.
-# Extract the columns that are relevant for first-order measures only. Begin by partitioning all columns into four categories.
+###############################
+### DROP AND RENAME COLUMNS ###
+###############################
 
 dropped_cols = [
-    'submission_id',
     'attention_score',
     'reasoning_score',
     'group',
+]
+
+submission_id = [
+    'submission_id',
 ]
 
 group_by_cols = [
@@ -69,7 +82,8 @@ beta_params = [
 ]
 
 # Check that the partition is exhaustive.
-assert(set(d.columns) == set(dropped_cols + group_by_cols + first_order_cols + second_order_cols + beta_params))
+assert(set(d.columns) == set(dropped_cols + submission_id + group_by_cols + first_order_cols + second_order_cols + beta_params))
+
 
 # Rename columns of interest
 first_order_col_renames = {
@@ -90,38 +104,51 @@ second_order_col_renames = {
     'beta_bayes_factor_utility'         : 'beta_bfu',
     'pure_second_order_belief_change'   : 'beta_bch',
 }
-new_col_names = list(first_order_col_renames.values()) + list(second_order_col_renames.values())
 
-# Treat categorical columns as categorical.
-d = d.astype(
-    { 
-    'StimID': 'category',
-    'AnswerCertainty': 'category',
-    'AnswerPolarity': 'category',
-    'ContextType': 'category',
-    }
-)
+
 # Set new column names
 d = (d
     # Select columns of interest.
-    .loc[:,(['submission_id'] + group_by_cols + first_order_cols + second_order_cols)]
+    .loc[:,(submission_id + group_by_cols + first_order_cols + second_order_cols)]
     # Rename first-order measures to shorter names.
     .rename(columns=first_order_col_renames)
     # Rename second-order measures.
     .rename(columns=second_order_col_renames)
 )
 
+# Add unique row ids and non-unique group ids for convenience
+d = d.assign(
+    RowID = lambda x: x.StimID.astype(str) + x.AnswerCertainty + x.AnswerPolarity + x.ContextType + x.submission_id.astype(str),
+    GroupID = lambda x: x.StimID.astype(str) + x.AnswerCertainty + x.AnswerPolarity + x.ContextType
+)
+
+# Treat categorical columns as categorical.
+d = d.astype(
+    { 
+    'RowID': 'category',
+    'GroupID': 'category',
+    'StimID': 'category',
+    'AnswerCertainty': 'category',
+    'AnswerPolarity': 'category',
+    'ContextType': 'category',
+    }
+)
+
+#####################
+### ADD NEW STATS ###
+#####################
+
+new_col_names = list(first_order_col_renames.values()) + list(second_order_col_renames.values())
+
 ## Add ranks
-for col_name in new_col_names:
-    rank_col_name = col_name + '_rank'
-    d[rank_col_name] = d[col_name].rank()
+for col in new_col_names:
+    d[f'{col}_rank'] = d[col].rank()
 
-
-
-d.to_csv(data_by_response_path, index=False)
+## Add rank diffs
+for col in new_col_names:
+    d[f'{col}_rank_diff'] = d[f'{col}_rank'] - d['rel_rank']
 
 ## Functions for getting aggregate stats.
-
 def combine_dicts(list_of_dicts):
     '''
     Helper function to flatten a list of dicts.
@@ -137,40 +164,21 @@ def summary_stats(grp: pd.DataFrame) -> pd.Series:
     '''
     Calcuate summary stats for each measure.
     '''
-    cols = new_col_names
-    return pd.Series(combine_dicts(
-        [{
-        # Computations that don't require looping over cols.
-        'count' : grp[cols[0]].count()
-        }] + [
+    return pd.Series(combine_dicts([
         # list comprehension of dicts where
         # each dict contains summary stats
         # for one input column
         {
-            col: sorted(list(grp[col])),
-            col + '_mean': grp[col].mean(),
-            col + '_mean_rank': grp[col+'_rank'].mean(),
-            col + '_min': grp[col].min(),
-            col + '_q25': grp[col].quantile(0.25),
-            col + '_q50': grp[col].quantile(0.50),
-            col + '_q75': grp[col].quantile(0.75),
-            col + '_max': grp[col].max(),
-        } for col in cols
+            f'{col}_mean': grp[col].mean(),
+            f'{col}_rank_mean': grp[col+'_rank'].mean(),
+            f'{col}_rank_diff_mean': grp[col+'_rank_diff'].mean(),
+        } for col in new_col_names
     ]))
 
-# Group by `group_by_cols` (StimID, AnswerCertainty,
-# AnswerPolarity, ContextType). 
-d = (d
-    # Group by `group_by_cols` (StimID, AnswerCertainty,
-    # AnswerPolarity, ContextType).
-    .groupby(
-        group_by_cols, 
-        # No multi-indexing.
-        as_index=False,
-    )
-    # Get summary stats as columns.
-    .apply(summary_stats)
-    .dropna()
-)
 
-d.to_csv(data_by_item_path, index=False)
+
+group_stats = d.groupby('GroupID').apply(summary_stats)
+
+d = pd.merge(d, group_stats, on='GroupID')
+
+d.to_csv(processed_data_path, index=False)

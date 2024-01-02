@@ -13,17 +13,17 @@ app = Dash(__name__,
 pages = {
     # page title: page url
     'Home': '/',
-    'Scatter Plot': '/scatterplot',
+    'Plot': '/plot',
+    # 'Scatter Plot': '/scatterplot',
     'Tag Manager': '/tagmanager',
-    # 'Linked Plots': '/linkedplots',
 }
 
 initial_plot_settings = {
     'highlight': 'None',
     'items_or_responses': 'Items',
-    'x': 'pri_mean',
-    'y': 'pos_mean',
-    'color': 'rel_mean',
+    'x': 'pri',
+    'y': 'pos',
+    'color': 'rel',
     'color_scale': 'sunsetdark',
 }
 
@@ -40,7 +40,9 @@ app.layout = html.Div([
               data=read_tags_file()),
     dcc.Store(id='highlighted-tag-name'),
     dcc.Store(id='filter-settings'),
-    dcc.Store(id='plot-settings',
+    # dcc.Store(id='plot-settings',
+            #   data=initial_plot_settings),
+    dcc.Store(id='plot_settings',
               data=initial_plot_settings),
     dcc.Store(id='placeholder'),
     dcc.Location(id="url"), 
