@@ -7,48 +7,44 @@ import json
 PLOT_TEMPLATE = 'plotly_dark'
 
 
-menus = {
-    'x_col': {
+menus = [{
         'id': 'x_col',
         'options': data.col_names,
         'value': 'pri',
-    },
-    'y_col': {
+    },{
         'id': 'y_col',
         'options': data.col_names,
         'value': 'pos',
-    },
-    'color_col': {
+    },{
         'id': 'color_col',
         'options': data.col_names,
         'value': 'rel',
-    },
-    
-    'x_stat': {
+    },{
         'id': 'x_stat',
         'options': data.stats,
         'value': 'Score',
-    },
-    'y_stat': {
+    }, {
         'id': 'y_stat',
         'options': data.stats,
         'value': 'Score',
-    },
-    'color_stat': {
+    }, {
         'id': 'color_stat',
         'options': data.stats,
         'value': 'Score',
     },
-}
+]
 
-
-menus_html = [components.build_dropdown_menu(content) for content in menus.values()]
+dropdowns = menus[0:3]
+radios = menus[3:6]
+menus_html = components.build_dropdown_row(dropdowns)
+menus_html += components.build_radio_row(radios)
 tags_html = []
 
 layout = html.Div(children=[
         html.Div(style={'display': 'flex'}, children=[
-            html.Div(style={'width': '60%'}, 
-                     children=menus_html),
+            html.Div(style={'width': '80%'}, 
+                     children=
+                     html.Div(style={'display': 'flex'}, children=menus_html)),
             # html.Div(style={'width': '10%'}, children=components.build_button_row(plot_button)),
             # html.Div(style={'width': '10%'}, children=components.build_button_row(save_tag_button)),
             html.Div(style={'width': '20%'}, 
@@ -62,8 +58,8 @@ layout = html.Div(children=[
     ])
 
 plot_settings_inputs = [
-    Input(menu_id, 'value')
-    for menu_id in menus.keys()
+    Input(menu['id'], 'value')
+    for menu in menus
 ]
 
 @dash.callback(
