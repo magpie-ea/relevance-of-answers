@@ -9,6 +9,9 @@ TAGS_FILE_PATH = relevance_dir / 'qualitative-analysis' / 'data' / 'saved_tags.t
 
 d = pd.read_csv(data_path)
 
+def get_rowid_from_pointnumber(point_number):
+    return(d.iloc[point_number]['RowID'])
+
 slider_responses = {
     'pri': 'Prior',
     'pos': 'Posterior',

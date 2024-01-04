@@ -56,7 +56,7 @@ def update_highlighted_tag(tag_menu_value):
     Input('item-menu', 'value'),
 )
 def display_current_item(item_menu_value):
-    stim_text = data.items.query('rowlabel == @item_menu_value').stimulus
+    stim_text = data.d.query('RowID == @item_menu_value').stimulus
     return stim_text
 
 

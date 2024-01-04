@@ -34,11 +34,21 @@ menus = [{
     },
 ]
 
+save_tag_button = [
+    {
+        'id': 'save-tag-button',
+        'children': 'Save',
+        'style': styles.white_button_style
+    }
+]
+
 dropdowns = menus[0:3]
 radios = menus[3:6]
 menus_html = components.build_dropdown_row(dropdowns)
 menus_html += components.build_radio_row(radios)
-tags_html = []
+tags_html = [html.Div(style={'width': '10%'}, children=components.build_button_row(save_tag_button)), 
+             html.Div(id='tag-window', style={
+    'height': 100, 'font_size': '10px', 'overflow':'scroll'})]
 
 layout = html.Div(children=[
         html.Div(style={'display': 'flex'}, children=[
@@ -112,8 +122,9 @@ def update_graph(plot_settings, timestamp):
 
     ## HIGHLIGHTING
     if highlight != 'None':
+        q = f'RowID in @highlight'
         fig.add_traces(
-            px.scatter(plotdf.query(highlight), 
+            px.scatter(plotdf.query(q), 
                     x=x, y=y, color=color)
                     .update_traces(marker_size=20).data
         )
@@ -137,5 +148,35 @@ def display_hover_data(hoverData):
     point_index = hoverData['points'][0]['pointIndex']
     hovertext = data.d.iloc[point_index]['stimulus']
     return hovertext
+
+# Update tag window on select
+@dash.callback(
+    Output('tag-window', 'children'),
+    [
+        Input('myplot', 'selectedData'),
+    ],
+    prevent_initial_call=True,
+)
+def update_tag_window(selected_data):
+    if not selected_data:
+        return ''
+    rowlabels = list([data.get_rowid_from_pointnumber(point['pointNumber']) for point in selected_data['points']])
+    return json.dumps(rowlabels)
+
+# Update saved tags when Save button is clicked
+@dash.callback(
+    Output('saved-tags', 'data'),
+    [
+        State('tag-window', 'children'),
+        State('saved-tags', 'data'),
+        Input('save-tag-button', 'n_clicks'),
+    ],
+    prevent_initial_call=True,
+)
+def save_tag(tag_window, saved_tags, n_clicks):
+    if tag_window:
+        tag_window_list = json.loads(tag_window)
+        saved_tags.append(tag_window_list)
+    return saved_tags
 
 dash.register_page(__name__, path="/plot", layout=layout)  
