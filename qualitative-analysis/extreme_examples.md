@@ -1,6 +1,6 @@
-#Rank diff: ech - relevance: Bottom 10 
+# Rank diff: ech - relevance: Bottom 10 
 
-##0
+## 0
 
 GroupID: **12exhaustivenegativenegative**
 
@@ -16,7 +16,7 @@ You ask your mother: **Is school canceled?**
 
 Your mother responds: **They already announced that school would be open.**
 
-##1
+## 1
 
 GroupID: **12low_certaintynegativenegative**
 
@@ -32,7 +32,7 @@ You ask your mother: **Is school canceled?**
 
 Your mother responds: **They didn't cancel last time it snowed.**
 
-##2
+## 2
 
 GroupID: **8high_certaintynegativenegative**
 
@@ -48,7 +48,7 @@ You ask your friend Claire: **Did Tony get Ethan a cookbook for his birthday?**
 
 Claire responds: **Tony knows that Ethan has too many cookbooks.**
 
-##3
+## 3
 
 GroupID: **12exhaustivenegativenegative**
 
@@ -64,7 +64,7 @@ You ask your mother: **Is school canceled?**
 
 Your mother responds: **They already announced that school would be open.**
 
-##4
+## 4
 
 GroupID: **12high_certaintynegativenegative**
 
@@ -80,7 +80,7 @@ You ask your mother: **Is school canceled?**
 
 Your mother responds: **A school bus is coming down the road now.**
 
-##5
+## 5
 
 GroupID: **12high_certaintynegativenegative**
 
@@ -96,7 +96,7 @@ You ask your mother: **Is school canceled?**
 
 Your mother responds: **A school bus is coming down the road now.**
 
-##6
+## 6
 
 GroupID: **12exhaustivenegativeneutral**
 
@@ -112,7 +112,7 @@ You ask your mother: **Is school canceled?**
 
 Your mother responds: **They already announced that school would be open.**
 
-##7
+## 7
 
 GroupID: **12exhaustivepositivenegative**
 
@@ -128,7 +128,7 @@ You ask your mother: **Is school canceled?**
 
 Your mother responds: **They already announced that school is canceled.**
 
-##8
+## 8
 
 GroupID: **12exhaustivepositivenegative**
 
@@ -144,7 +144,7 @@ You ask your mother: **Is school canceled?**
 
 Your mother responds: **They already announced that school is canceled.**
 
-##9
+## 9
 
 GroupID: **12high_certaintynegativenegative**
 
@@ -158,9 +158,9 @@ Before bed last night, you saw it was supposed to snow overnight. You wake up at
 
 You ask your mother: **Is school canceled?**
 
-Your mother responds: **A school bus is coming down the road now.**#Rank diff: ech - relevance: Top 10 
+Your mother responds: **A school bus is coming down the road now.**# Rank diff: ech - relevance: Top 10 
 
-##0
+## 0
 
 GroupID: **9low_certaintypositivenegative**
 
@@ -176,7 +176,7 @@ You ask your roommate Buster: **Is the pizza place open today?**
 
 Buster responds: **Most pizza places are open on Mondays.**
 
-##1
+## 1
 
 GroupID: **7high_certaintynegativepositive**
 
@@ -192,7 +192,7 @@ You ask your colleague Alan privately: **Is Lauren the mole?**
 
 Alan responds: **The leak wasn't from Lauren's department.**
 
-##2
+## 2
 
 GroupID: **11non_answerpositivenegative**
 
@@ -208,7 +208,7 @@ You text your friend Joe to ask: **Is Jane going to be late?**
 
 Joe responds: **She's bringing a bottle of wine.**
 
-##3
+## 3
 
 GroupID: **6low_certaintypositiveneutral**
 
@@ -224,7 +224,7 @@ You ask your coworker Meaghan: **Is there any cake left?**
 
 Meaghan responds: **I saw someone with a slice yesterday.**
 
-##4
+## 4
 
 GroupID: **2non_answerpositivenegative**
 
@@ -240,7 +240,7 @@ You ask your sibling: **Are we having hamburgers for dinner?**
 
 Your sibling responds: **We're having chicken soup for lunch.**
 
-##5
+## 5
 
 GroupID: **3low_certaintynegativepositive**
 
@@ -256,7 +256,7 @@ You ask your coworker Laura: **Is Joe married?**
 
 Laura responds: **He went to the company picnic without a plus-one.**
 
-##6
+## 6
 
 GroupID: **9low_certaintynegativepositive**
 
@@ -272,7 +272,7 @@ You ask your roommate Buster: **Is the pizza place open today?**
 
 Buster responds: **It's a small town, and most restaurants are closed on Mondays.**
 
-##7
+## 7
 
 GroupID: **9non_answerpositiveneutral**
 
@@ -288,7 +288,7 @@ You ask your roommate Buster: **Is the pizza place open today?**
 
 Buster responds: **Weekend hours are 10am to 10pm.**
 
-##8
+## 8
 
 GroupID: **12high_certaintypositivenegative**
 
@@ -304,7 +304,7 @@ You ask your mother: **Is school canceled?**
 
 Your mother responds: **The street is covered with ice.**
 
-##9
+## 9
 
 GroupID: **6non_answerpositivepositive**
 
