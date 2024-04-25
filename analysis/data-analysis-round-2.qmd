@@ -111,7 +111,7 @@ We exclude all data from participants who:
 -   scored less than 0.5 on reasoning tasks, or
 -   has task-sensitivity of not more than 0.75
 
-Task sensitivity is the proportion of critical trials, excluding non-answer trials, in which the change between prior and posterior rating was bigger than 0.05 or there was a non-zero change in confidence rating.
+Task sensitivity is the proportion of critical trials, excluding non-answer trials, in which the change between prior and posterior rating was bigger than 0.05 or there was a non-zero change in commitment rating.
 
 We first add the task-sensitivity score:
 
@@ -170,11 +170,11 @@ In the following, we first check whether these experimental manipulations worked
 
 ## Sanity-checking whether the manipulations worked as intended
 
-### Effects of `ContextType` on prior and prior confidence
+### Effects of `ContextType` on prior and prior commitment
 
 To check whether the `ContextType` manipulation worked, we compare how participants rated the prior probability of a 'yes' answer under each level of the `ContextType` variable.
 Concretely, we expect this order of prior ratings for the levels of `ContextType`: negative \< neutral \< positive.
-Although we have no specific hypotheses or sanity-checking questions regarding the confidence ratings, let's also scrutinize the confidence ratings that participants gave with their prior ratings.
+Although we have no specific hypotheses or sanity-checking questions regarding the commitment ratings, let's also scrutinize the commitment ratings that participants gave with their prior ratings.
 
 #### Prior ratings as a function of `ContextType`
 
@@ -185,6 +185,7 @@ d |> ggplot(aes(x = prior_sliderResponse, color = ContextType, fill = ContextTyp
   geom_density(alpha = 0.3) + 
   xlab("prior rating") +
   ylab("")
+ggsave("plots/sanity_check_context_type_prior.pdf", scale = 1.2, height = 4, width = 5)
 ```
 
 We dive deeper by fitting a regression model, predicting prior ratings in terms of the `ContextType`.
@@ -229,9 +230,9 @@ ContextType_SC_neuVSpos <-
   )
 ```
 
-#### Prior confidence as a function of `ContextType`
+#### Prior commitment as a function of `ContextType`
 
-Here is a visualization of the effect of `ContextType` on participants' confidence in their prior ratings.
+Here is a visualization of the effect of `ContextType` on participants' commitment in their prior ratings.
 
 ```{r}
 #| warning: false
@@ -239,11 +240,12 @@ Here is a visualization of the effect of `ContextType` on participants' confiden
 d |> mutate(prior_confidence = factor(prior_confidence, levels = 1:7)) |> 
   ggplot(aes(x = prior_confidence, color = ContextType, fill = ContextType)) +
   geom_histogram(position = "dodge", stat='count') + 
-  xlab("prior confidence") +
+  xlab("prior commitment") +
   ylab("")
+ggsave("plots/sanity_check_context_type_confidence.pdf", scale = 1.2, height = 4, width = 5)
 ```
 
-To scrutinize the effect of `ContextType` on participants expressed confidence in their prior ratings, we use a ordered-logit regression (since prior confidence ratings are from a rating scale).
+To scrutinize the effect of `ContextType` on participants expressed commitment in their prior ratings, we use a ordered-logit regression (since prior commitment ratings are from a rating scale).
 
 ```{r}
 #| results: 'hide'
@@ -298,9 +300,9 @@ results_ContextType_SanityCheck <-
   ~comparison, ~measure, ~posterior, ~"HDI-low", ~"HDI-high",
   "negative < neutral" , "prior", ContextType_SC_negVSneu$post_prob, ContextType_SC_negVSneu$l_ci, ContextType_SC_negVSneu$u_ci,  
   "neutral < positive" , "prior", ContextType_SC_neuVSpos$post_prob, ContextType_SC_neuVSpos$l_ci, ContextType_SC_neuVSpos$u_ci,  
-  "neutral < negative" , "prior-confidence", ContextType_SC_neuVSneg_conf$post_prob, ContextType_SC_neuVSneg_conf$l_ci, ContextType_SC_neuVSneg_conf$u_ci,  
-  "negative < positive" , "prior-confidence", ContextType_SC_negVSpos_conf$post_prob, ContextType_SC_negVSpos_conf$l_ci, ContextType_SC_negVSpos_conf$u_ci,  
-  "neutral < positive" , "prior-confidence", ContextType_SC_neuVSpos_conf$post_prob, ContextType_SC_neuVSpos_conf$l_ci, ContextType_SC_neuVSpos_conf$u_ci,  
+  "neutral < negative" , "prior-commitment", ContextType_SC_neuVSneg_conf$post_prob, ContextType_SC_neuVSneg_conf$l_ci, ContextType_SC_neuVSneg_conf$u_ci,  
+  "negative < positive" , "prior-commitment", ContextType_SC_negVSpos_conf$post_prob, ContextType_SC_negVSpos_conf$l_ci, ContextType_SC_negVSpos_conf$u_ci,  
+  "neutral < positive" , "prior-commitment", ContextType_SC_neuVSpos_conf$post_prob, ContextType_SC_neuVSpos_conf$l_ci, ContextType_SC_neuVSpos_conf$u_ci,  
   )
 
 readr::write_csv(results_ContextType_SanityCheck, 
@@ -310,7 +312,7 @@ knitr::kable(results_ContextType_SanityCheck)
 ```
 
 The `ContextType` manipulation seems to have worked as expected for the prior ratings: lower in 'negative' than in 'neutral' than in 'positive'.
-There is no support for differences in the confidence ratings, except that the positive context case seems to induce more confidence than the neutral context.
+There is no support for differences in the commitment ratings, except that the positive context case seems to induce more commitment than the neutral context.
 
 ### Effects of `AnswerPolarity` and `AnswerCertainty` on `beliefChange`
 
@@ -726,10 +728,10 @@ myvars["hyp1LOOPValue"] <- Lambert_test(loo_comp_hyp1) |> round(3)
 
 We find support for hypothesis one.
 
-## Hypothesis 2: confidence change additionally contributes to relevance rating
+## Hypothesis 2: commitment change additionally contributes to relevance rating
 
-We also hypothesize that change in confidence (`second_order_belief_change`) ratings additionally contributes to predicting relevance ratings.
-Concretely, we address this hypothesis with a linear beta regression model like for hypothesis 1, but also including the absolute difference in confidence ratings for before and after the answer (and the interaction term).
+We also hypothesize that change in commitment (`second_order_belief_change`) ratings additionally contributes to predicting relevance ratings.
+Concretely, we address this hypothesis with a linear beta regression model like for hypothesis 1, but also including the absolute difference in commitment ratings for before and after the answer (and the interaction term).
 We use the maximal RE-structure.
 We speak of evidence in favor of this hypothesis if the relevant posterior slope parameter is credibly bigger than zero and a loo-based model comparison favors the more complex model.
 We speak of evidence against this hypothesis if the loo-based model comparison favors the simpler model.
@@ -867,7 +869,7 @@ if (rerun_models) {
     control = list(adapt_delta = 0.9)
   ) |> add_criterion("loo", model_name = "belief_diff")
   
-  # confidence_diff 
+  # commitment_diff 
   fit_loo_confidence_diff <- ordbetareg(
     get_single_factor_formula("second_order_belief_change"),
     iter = 6000,
@@ -999,15 +1001,15 @@ d |>
 Note: redo these plots but show delta of relevance_sliderResponse and BF etc.
 
 
-And we do the same thing with the confidence ratings
-TODO: Sanity check whether condition with high bias prior and contradictory answer lead to decrease in confidence.
+And we do the same thing with the commitment ratings
+TODO: Sanity check whether condition with high bias prior and contradictory answer lead to decrease in commitment.
 ```{r}
 d |> 
     ggplot(aes(x = prior_confidence, y = posterior_confidence, color = relevance_sliderResponse))  +
     geom_jitter(width = 0.4, height = 0.4, size = 3, alpha = 0.4) + 
     scale_color_viridis()
 ```
-And now we can plot delta confidence and delta probability as x and y
+And now we can plot delta commitment and delta probability as x and y
 TODO: try removing non-answers from these (and other) plots
 ```{r}
 d |> 

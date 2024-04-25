@@ -13,7 +13,7 @@ TODO: What is the difference between:
 
 # Steps for post-processing data
 
-###Step 1: Identify the location of the results file:
+### Step 1: Identify the location of the results file:
 
 Set your project root before running the following.
 
