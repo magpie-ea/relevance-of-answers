@@ -2,14 +2,13 @@
 
 This directory contains scripts for results post-processing and analysis.
 
-# Data analysis
-Check `data-exploration-writeup.rmd` for a full walk-through.
+The main data analysis is in `data-analysis-main.qmd`.
 
-TODO: What is the difference between:
-- `data-exploration.r`
-- `data-exploration-writeup.html`
-- `data-exploration-writeup.qmd`
-- `data-exploration-writeup.Rmd`
+- `R_data_4_TeX` contains results from the data analysis for reproducible use in LaTeX
+- `cached_models` contains cached regression models to speed up processing
+- `legacy` contains prior iterations of data analysis (including the script for the preregistration)
+- `plots` contains plots generated during data analysis
+
 
 # Steps for post-processing data
 
