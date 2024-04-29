@@ -371,12 +371,22 @@ We check if inferred cell means are credibly bigger than zero, for all six relev
 ```{r}
 # 1. Check if belief change in each cell is bigger than zero
 cellDraws_answers <- tibble(
-  low_pos  = extract_cell_draws(fit_answer_SC, AnswerCertainty == "low_certainty"  & AnswerPolarity == "positive", "low_pos")$low_pos,
-  high_pos = extract_cell_draws(fit_answer_SC, AnswerCertainty == "high_certainty" & AnswerPolarity == "positive", "high_pos")$high_pos,
-  exh_pos  = extract_cell_draws(fit_answer_SC, AnswerCertainty == "exhaustive"     & AnswerPolarity == "positive", "exh_pos")$exh_pos,
-  low_neg  = extract_cell_draws(fit_answer_SC, AnswerCertainty == "low_certainty"  & AnswerPolarity == "negative", "low_neg")$low_neg,
-  high_neg = extract_cell_draws(fit_answer_SC, AnswerCertainty == "high_certainty" & AnswerPolarity == "negative", "high_neg")$high_neg,
-  exh_neg  = extract_cell_draws(fit_answer_SC, AnswerCertainty == "exhaustive"     & AnswerPolarity == "negative", "exh_neg")$exh_neg
+  low_pos  = filter_cell_draws(
+    fit_answer_SC, AnswerCertainty == "low_certainty"  & AnswerPolarity == "positive", 
+    "low_pos")$low_pos,
+  high_pos = filter_cell_draws(
+    fit_answer_SC, AnswerCertainty == "high_certainty" & AnswerPolarity == "positive", 
+    "high_pos")$high_pos,
+  exh_pos  = filter_cell_draws(
+    fit_answer_SC, AnswerCertainty == "exhaustive"     & AnswerPolarity == "positive", 
+    "exh_pos")$exh_pos,
+  low_neg  = filter_cell_draws(
+    fit_answer_SC, AnswerCertainty == "low_certainty"  & AnswerPolarity == "negative", 
+    "low_neg")$low_neg,
+  high_neg = filter_cell_draws(
+    fit_answer_SC, AnswerCertainty == "high_certainty" & AnswerPolarity == "negative", 
+    "high_neg")$high_neg,
+  exh_neg  = filter_cell_draws(fit_answer_SC, AnswerCertainty == "exhaustive"     & AnswerPolarity == "negative", "exh_neg")$exh_neg
 ) 
 
 # all posterior 95% HDIs are wayabove 0 
@@ -649,9 +659,9 @@ Here is a plot of the relevant posterior draws visually supporting why we compar
 
 draws_ContextType <- 
   tibble(
-    positive = extract_cell_draws(fit_to_use, ContextType == "positive", colname = "positive")$positive,
-    negative = extract_cell_draws(fit_to_use, ContextType == "negative", colname = "negative")$negative,
-    neutral  = extract_cell_draws(fit_to_use, ContextType == "neutral",  colname = "neutral" )$neutral
+    positive = filter_cell_draws(fit_to_use, ContextType == "positive", colname = "positive")$positive,
+    negative = filter_cell_draws(fit_to_use, ContextType == "negative", colname = "negative")$negative,
+    neutral  = filter_cell_draws(fit_to_use, ContextType == "neutral",  colname = "neutral" )$neutral
   ) |> pivot_longer(cols = everything())
 
 draws_ContextType |> 
@@ -770,7 +780,7 @@ loo_comp_hyp2
 Lambert_test(loo_comp_hyp2)
 ```
 
-```{r hyp1-prepare-results}
+```{r hyp1-prepare-results-2}
 post_samples <- hyp2_summary$samples |> pull(H1)
 HDIs <- HDInterval::hdi(post_samples, credMass = 0.944)
 
