@@ -71,6 +71,7 @@
         :item="trial"
         :group="group"
         :progress="i / items.length"
+        :experimentType="experimentType"
       />/>
     </template>
 
