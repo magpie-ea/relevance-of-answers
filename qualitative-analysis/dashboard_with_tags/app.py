@@ -8,7 +8,8 @@ import json
 app = Dash(__name__, 
         use_pages=True, 
         external_stylesheets=[dbc.themes.DARKLY],
-        suppress_callback_exceptions=True,)
+        suppress_callback_exceptions=True
+           )
 
 pages = {
     # page title: page url
@@ -52,7 +53,7 @@ app.layout = html.Div([
 @dash.callback(
         Output('placeholder', 'data'),
         State('saved-tags', 'data'),
-        Input('saved-tags', 'modified_timestamp'),
+        Input('saved-tags', 'modified_timestamp')
 )
 def write_tags_file(saved_tags, timestamp):
     with open(data.TAGS_FILE_PATH, 'w') as f:

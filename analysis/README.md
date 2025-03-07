@@ -2,16 +2,17 @@
 
 This directory contains scripts for results post-processing and analysis.
 
-# Data analysis
-Check `data-exploration-writeup.rmd` for a full walk-through.
+# Preregistered analysis
+The official preregistered analysis (including preregistered "exploratory" analysis) are all performed in `data-analysis-round-2.qmd`
 
-TODO: What is the difference between:
-- `data-exploration.r`
-- `data-exploration-writeup.html`
-- `data-exploration-writeup.qmd`
-- `data-exploration-writeup.Rmd`
+# Qualitative analysis
+The qualitative analysis is performed in `qualitative_analysis.ipynb`.
 
-# Steps for post-processing data
+# Steps for post-processing raw data
+
+The raw experimental data needs to be processed before undergoing preregistered and qualitative analyses.
+This process is already done (see `results/round_2.0/results_preprocessed.csv`),
+but the can be replicated as follows:
 
 ###Step 1: Identify the location of the results file:
 
@@ -92,3 +93,5 @@ python3 compute_metrics.py --input $RESULTS_DIR/results_filtered.tmp --output $R
 python3 finalize_preprocessing.py --input $RESULTS_DIR/results_filtered.tmp --output $RESULTS_DIR/results_preprocessed.csv
 rm $RESULTS_DIR/results_filtered.tmp
 ```
+
+

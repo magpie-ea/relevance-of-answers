@@ -4,9 +4,13 @@ Experiment to test different notions of (information-theoretic) relevance agains
 
 This experiment uses [_magpie](https://magpie-experiments.org).
 
-Clone the repository and set up the project with `npm install`
+Clone the repository and set up the project with `npm install 16`
 
-To run the experiment locally, run `npm run serve`
+To run the experiment locally, run:
+```
+nvm use 16
+npm run serve -- --host localhost
+```
 
 A live version is here: [https://magpie3-relevance-answers.netlify.app/](https://magpie3-relevance-answers.netlify.app/)
 

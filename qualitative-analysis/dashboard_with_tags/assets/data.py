@@ -32,11 +32,15 @@ second_order_measures = {
     'beta_bfu': 'BetaBFU',
     'beta_bch': 'BetaBeliefCh',
 }
+rank_diffs = {
+    'bfu_diff': 'bfu_rank_diff'
+}
 col_names = (
     dict(list(slider_responses.items()) 
          + list(first_order_measures.items()) 
         #  + list(deltas.items())
          + list(second_order_measures.items())
+         + list(rank_diffs.items())
 ))
 
 # OPTIONS FOR SUMMARY STATS
