@@ -1,4 +1,4 @@
-<!-- RelevanceTrial.vue -->
+<!-- RelevanceOnlyTrial.vue -->
 <template>
   <Screen :progress="progress">
     <Slide>
@@ -25,6 +25,7 @@
       <!--   @update:response="$magpie.saveAndNextScreen()" -->
       <!-- /> -->
 
+      <!-- Callout for beginning of practice -->
       <div
         v-if="
           item.TrialType == 'practice' &&
@@ -76,22 +77,22 @@
       <br />
 
       <!-- instructions for practice trials PRIOR -->
-      <div
-        v-if="
-          item.TrialType == 'practice' &&
-          !sliderResponseClicked &&
-          item.TaskType.includes('prior')
-        "
-        class="callout"
-      >
-        <p>
-          <strong>Instructions:</strong> Then you judge the probability that the
-          content of the question might be true. Drag the slider to give your
-          best guess at the probability. Don't worry if there's not enough
-          information to choose an exact probability. Just give us an intuitive
-          guess.
-        </p>
-      </div>
+<!--      <div-->
+<!--        v-if="-->
+<!--          item.TrialType == 'practice' &&-->
+<!--          !sliderResponseClicked &&-->
+<!--          item.TaskType.includes('prior')-->
+<!--        "-->
+<!--        class="callout"-->
+<!--      >-->
+<!--        <p>-->
+<!--          <strong>Instructions:</strong> Then you judge the probability that the-->
+<!--          content of the question might be true. Drag the slider to give your-->
+<!--          best guess at the probability. Don't worry if there's not enough-->
+<!--          information to choose an exact probability. Just give us an intuitive-->
+<!--          guess.-->
+<!--        </p>-->
+<!--      </div>-->
 
       <!-- instructions for practice trials POSTERIOR -->
       <div
@@ -118,12 +119,7 @@
       >
         <div class="callout">
           <p>
-            Now tell us how
-            <strong>{{ group == 'helpful' ? 'helpful' : 'relevant' }}</strong>
-            Jess's answer was in response to your question. Jess's answer
-            doesn't directly answer the question, but you would probably find it
-            pretty {{ group == 'helpful' ? 'helpful' : 'relevant' }} in this
-            context. So move the slider towards the right.
+            {{ item.Editorial1 }}
           </p>
         </div>
       </div>
@@ -191,8 +187,7 @@
       >
         <p>
           <strong>Instructions:</strong>
-          The Eiffel Tower seems like a pretty "unmissable" site, so to a lot of
-          people a probability between 50% and 90% seems reasonable.
+            {{ item.Editorial1 }}
         </p>
       </div>
 
@@ -208,8 +203,7 @@
       >
         <p>
           <strong>Instructions:</strong>
-          It's pretty unlikely that Aaron will go to the Eiffel Tower if he
-          hates it. So select a low probability, like 5%.
+            {{ item.Editorial1 }}
         </p>
       </div>
 
@@ -238,13 +232,7 @@
           <p>
             <strong>Instructions:</strong>
             We now ask you how committed you are to the probability judgment you
-            gave. In the case at hand, the probability is fairly hard to judge,
-            so you may have low commitment to your judgment. Based on just this
-            information, a high probability like 60% or 80% might be the best
-            guess. But the context leaves open a strong possibility that a low
-            probability like 40% or even 10% is more appropriate (for example,
-            if Aaron doesn't consider the Eiffel tower "unmissable"). So maybe
-            you could select a button on the lower end, like 1, 2, or 3.
+            gave. {{ item.Editorial2 }}
           </p>
         </div>
       </div>
@@ -262,11 +250,7 @@
           <p>
             <strong>Instructions:</strong>
             Now tell us how committed you are to this second probability
-            judgment. You might be more committed than before that the
-            probability is very low, like 1% or 5%. Other similar probabilities
-            like 2% or 10% are plausible, but very different probabilities like
-            60% or 80% are unreasonable. So select a button that's higher than
-            before, like 4, 5, or 6.
+            judgment. {{ item.Editorial2 }}
           </p>
         </div>
       </div>
@@ -311,7 +295,7 @@
 
 <script>
 export default {
-  name: 'RelevanceTrial',
+  name: 'RelevanceOnlyTrial',
   props: {
     item: {
       type: Object,
