@@ -8,13 +8,21 @@ The official preregistered analysis (including preregistered "exploratory" analy
 # Qualitative analysis
 The qualitative analysis is performed in `qualitative_analysis.ipynb`.
 
+The main data analysis is in `data-analysis-main.qmd`.
+
+- `R_data_4_TeX` contains results from the data analysis for reproducible use in LaTeX
+- `cached_models` contains cached regression models to speed up processing
+- `legacy` contains prior iterations of data analysis (including the script for the preregistration)
+- `plots` contains plots generated during data analysis
+
+
 # Steps for post-processing raw data
 
 The raw experimental data needs to be processed before undergoing preregistered and qualitative analyses.
 This process is already done (see `results/round_2.0/results_preprocessed.csv`),
 but the can be replicated as follows:
 
-###Step 1: Identify the location of the results file:
+### Step 1: Identify the location of the results file:
 
 Set your project root before running the following.
 
@@ -93,5 +101,3 @@ python3 compute_metrics.py --input $RESULTS_DIR/results_filtered.tmp --output $R
 python3 finalize_preprocessing.py --input $RESULTS_DIR/results_filtered.tmp --output $RESULTS_DIR/results_preprocessed.csv
 rm $RESULTS_DIR/results_filtered.tmp
 ```
-
-
