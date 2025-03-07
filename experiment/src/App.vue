@@ -185,7 +185,7 @@ export default {
       items: items,
       practiceItems: practiceItems,
       group: group,
-      experimentType: experimentType
+      experimentType: 'relevance_only'
     };
   },
   computed: {
