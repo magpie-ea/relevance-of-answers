@@ -55,7 +55,7 @@
     </InstructionScreen>
 
     <template v-for="(trial, i) in experimentType === 'relevance_only' ? practiceItems.slice(3,7) : practiceItems.slice(0,3)">
-      <RelevanceTrial :key="i" :trial-n-r="i" :item="trial" :group="group" />
+      <RelevanceTrial :key="i" :trial-n-r="i" :item="trial" :group="group" :experimentType="experimentType" />
     </template>
 
     <InstructionScreen
@@ -186,7 +186,7 @@ export default {
       items: items,
       practiceItems: practiceItems,
       group: group,
-      experimentType: experimentType
+      experimentType: 'relevance_only',
     };
   },
   computed: {
@@ -198,7 +198,7 @@ export default {
   mounted() {
     this.$magpie.addExpData({
       group: group,
-      experimentType: experimentType
+      experimentType: experimentType,
     });
   }
 };
