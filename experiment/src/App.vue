@@ -55,7 +55,7 @@
     </InstructionScreen>
 
     <template v-for="(trial, i) in experimentType === 'relevance_only' ? practiceItems.slice(3,7) : practiceItems.slice(0,3)">
-      <RelevanceOnlyTrial :key="i" :trial-n-r="i" :item="trial" :group="group" />
+      <RelevanceTrial :key="i" :trial-n-r="i" :item="trial" :group="group" />
     </template>
 
     <InstructionScreen
@@ -65,7 +65,7 @@
     </InstructionScreen>
 
     <template v-for="(trial, i) in items">
-      <RelevanceOnlyTrial
+      <RelevanceTrial
         :key="i"
         :trial-n-r="i"
         :item="trial"
@@ -173,12 +173,12 @@ for (let i = 0; i < items.length; i++) {
 }
 
 // import component
-import RelevanceOnlyTrial from './RelevanceOnlyTrial.vue';
+import RelevanceTrial from './RelevanceTrial.vue';
 
 export default {
   name: 'App',
   components: {
-    RelevanceOnlyTrial
+    RelevanceTrial
   },
   data() {
     return {
