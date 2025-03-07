@@ -185,7 +185,7 @@ export default {
       items: items,
       practiceItems: practiceItems,
       group: group,
-      experimentType: 'relevance_only'
+      experimentType: experimentType
     };
   },
   computed: {
@@ -196,7 +196,8 @@ export default {
   },
   mounted() {
     this.$magpie.addExpData({
-      group: group
+      group: group,
+      experimentType: experimentType
     });
   }
 };
