@@ -24,7 +24,7 @@
       If you read carefully all of the text necessary to complete a trial, you
       will recognize the attention trials, because they tell you directly what
       you need to do in order to pass them.<br /><br />
-      The experiment will take about {{ experimentType == 'relevance_only' ? '5' : '10-15' }} minutes to complete.<br /><br />
+      The experiment will take about {{ experimentType == 'relevance_only' ? '5-10' : '10-15' }} minutes to complete.<br /><br />
     </InstructionScreen>
 
     <InstructionScreen :title="'Instructions'">
