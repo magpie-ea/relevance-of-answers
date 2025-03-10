@@ -7,8 +7,8 @@ This directory contains all the stimuli for the experiment and some pre-processi
    hand-written version of the stimuli, and translating into a format that `magpie` can use.
 2. `data_preparation/stimuli.csv`: This is the concise, hand-written version of the stimuli.
 3. `answer-conditions.csv`: This is a list of all 7 answer conditions, which `magpie` uses to construct an experiment.
-4. `practice_stimuli.csv`: The stimuli for the practice trial.
-5. `relevance_fillers.csv`: The stimuli for the attention check and reasoning check trials.
+4. `practice_stimuli.csv`: The stimuli for the practice trial. `StimID` 1 is used for Experiment 1, `StimID`s 2-5 are used for Experiment 2.
+5. `relevance_fillers.csv`: The stimuli for the attention check and reasoning check trials. `StimID`s 1-2 and used for Experiment 1. `StimID`s 3-4 are used for Experiment 2.
 6. `relevance_stimuli.csv`: The stimuli for the main trials in the long format that `magpie` requires.
 
 
