@@ -12,7 +12,7 @@ nvm use 16
 npm run serve -- --host localhost
 ```
 
-A live version is here: [https://magpie3-relevance-answers.netlify.app/](https://magpie3-relevance-answers.netlify.app/)
+A live version is here: [https://magpie-ea.github.io/relevance-of-answers/](https://magpie-ea.github.io/relevance-of-answers/)
 
 For detailed information about each subpart of the project, consult the `README.md` file contained in each subdirectory. 
 - `analysis` contains all code related to data analysis
