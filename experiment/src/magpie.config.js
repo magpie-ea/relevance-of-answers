@@ -4,5 +4,5 @@ export default {
   socketUrl: 'wss://magpie-cogsciprag.fly.dev/socket',
   contactEmail: 'alexwarstadt@gmail.com',
   // Either 'debug', 'directLink' or 'prolific'
-  mode: 'directLink'
+  mode: 'prolific'
 };
