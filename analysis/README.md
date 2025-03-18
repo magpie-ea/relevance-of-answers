@@ -2,10 +2,10 @@
 
 This directory contains scripts for results post-processing and analysis.
 
-# Preregistered analysis
+## Preregistered analysis
 The official preregistered analysis (including preregistered "exploratory" analysis) are all performed in `data-analysis-round-2.qmd`
 
-# Qualitative analysis
+## Qualitative analysis
 The qualitative analysis is performed in `qualitative_analysis.ipynb`.
 
 The main data analysis is in `data-analysis-main.qmd`.
@@ -16,7 +16,7 @@ The main data analysis is in `data-analysis-main.qmd`.
 - `plots` contains plots generated during data analysis
 
 
-# Steps for post-processing raw data
+## Steps for post-processing raw data
 
 The raw experimental data needs to be processed before undergoing preregistered and qualitative analyses.
 This process is already done (see `results/round_2.0/results_preprocessed.csv`),
