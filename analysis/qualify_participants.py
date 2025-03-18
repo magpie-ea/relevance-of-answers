@@ -7,6 +7,7 @@ parser.add_argument("--raw_responses", help="Relative path to a magpie .csv file
 parser.add_argument("--output", help="Name of output file")
 parser.add_argument("--exclude_pilot", action="store_true", help="Does the data include pilot data? Some pre-processing is necessary to address inconsistencies.")
 parser.add_argument("--exclude_round1", action="store_true", help="Does the data include round 1 data?")
+parser.add_argument("--relevance-only", action="store_true", help="Is this for a relevance-only experiment?")
 args = parser.parse_args()
 
 ATTENTION_PASS_THRESHOLD = 1
@@ -40,14 +41,30 @@ metadata["n_participants"] = n_participants
 
 # Quality checks
 df_qual = pd.DataFrame(index=df.submission_id.unique())
-for trial_type, threshold in zip(["attention", "reasoning"], [ATTENTION_PASS_THRESHOLD, REASONING_PASS_THRESHOLD]):
-    df_tmp = df[df["TrialType"] == trial_type][["submission_id",
-                                                "p_min", "p_max", "sliderResponse",
-                                                "certainty_max", "certainty_min", "confidence"]]
-    df_tmp["correct_p"] = df_tmp.apply(lambda x: x["sliderResponse"] <= x["p_max"] and x["sliderResponse"] >= x["p_min"], axis=1)
-    df_tmp["correct_c"] = df_tmp.apply(lambda x: x["confidence"] <= x["certainty_max"] and x["confidence"] >= x["certainty_min"], axis=1)
-    df_tmp = df_tmp[["submission_id", "correct_p", "correct_c"]].set_index("submission_id").stack().droplevel(1)
-    df_tmp = pd.DataFrame(df_tmp).pivot_table(index="submission_id", aggfunc=np.mean)
-    df[f'{trial_type}_score'] = df["submission_id"].apply(lambda x: df_tmp.loc[x])
 
-df.to_json(path_or_buf=args.output, orient="records", lines=True)
+if args.relevance_only:
+    for trial_type, threshold in zip(["attention", "reasoning"], [ATTENTION_PASS_THRESHOLD, REASONING_PASS_THRESHOLD]):
+        df_tmp = df[df["TrialType"] == trial_type][["submission_id",
+                                                    "p_min", "p_max", "sliderResponse"]]
+        df_tmp["correct_p"] = df_tmp.apply(lambda x: x["sliderResponse"] <= x["p_max"] and x["sliderResponse"] >= x["p_min"], axis=1)
+        df_tmp = df_tmp[["submission_id", "correct_p"]].set_index("submission_id").stack().droplevel(1)
+        df_tmp = pd.DataFrame(df_tmp).pivot_table(index="submission_id", aggfunc=np.mean)
+        df[f'{trial_type}_score'] = df["submission_id"].apply(lambda x: df_tmp.loc[x])
+    df = df[df["TrialType"] == "main"].reset_index()
+    df = df[[
+        "submission_id", "group", "StimID", "AnswerCertainty", "AnswerPolarity", "ContextType", "attention_score",
+        "reasoning_score", "sliderResponse"
+    ]]
+    df.to_csv(path_or_buf=args.output)
+else:
+    for trial_type, threshold in zip(["attention", "reasoning"], [ATTENTION_PASS_THRESHOLD, REASONING_PASS_THRESHOLD]):
+        df_tmp = df[df["TrialType"] == trial_type][["submission_id",
+                                                    "p_min", "p_max", "sliderResponse",
+                                                    "certainty_max", "certainty_min", "confidence"]]
+        df_tmp["correct_p"] = df_tmp.apply(lambda x: x["sliderResponse"] <= x["p_max"] and x["sliderResponse"] >= x["p_min"], axis=1)
+        df_tmp["correct_c"] = df_tmp.apply(lambda x: x["confidence"] <= x["certainty_max"] and x["confidence"] >= x["certainty_min"], axis=1)
+        df_tmp = df_tmp[["submission_id", "correct_p", "correct_c"]].set_index("submission_id").stack().droplevel(1)
+        df_tmp = pd.DataFrame(df_tmp).pivot_table(index="submission_id", aggfunc=np.mean)
+        df[f'{trial_type}_score'] = df["submission_id"].apply(lambda x: df_tmp.loc[x])
+    df.to_json(path_or_buf=args.output, orient="records", lines=True)
+

@@ -101,3 +101,15 @@ python3 compute_metrics.py --input $RESULTS_DIR/results_filtered.tmp --output $R
 python3 finalize_preprocessing.py --input $RESULTS_DIR/results_filtered.tmp --output $RESULTS_DIR/results_preprocessed.csv
 rm $RESULTS_DIR/results_filtered.tmp
 ```
+
+## Post processing relevance-only data
+The raw data is `data-raw-relevance-only.csv`
+```bash
+RESULTS_DIR=$PROJECT_ROOT/results/relevance-only
+cd $PROJECT_ROOT/analysis
+```
+
+Evaluate participant reasoning and attention and filter out unnecessary rows and cols
+```bash
+python3 qualify_participants.py --raw_responses $RESULTS_DIR/data-raw-relevance-only.csv --output $RESULTS_DIR/results_preprocessed.csv --relevance-only
+```
