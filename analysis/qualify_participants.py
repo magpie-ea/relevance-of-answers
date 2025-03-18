@@ -10,7 +10,7 @@ parser.add_argument("--exclude_round1", action="store_true", help="Does the data
 args = parser.parse_args()
 
 ATTENTION_PASS_THRESHOLD = 1
-REASONING_PASS_THRESHOLD = 0.625
+REASONING_PASS_THRESHOLD = 0.5
 
 
 
