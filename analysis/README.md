@@ -31,6 +31,11 @@ RESULTS_DIR=$PROJECT_ROOT/results/round_2.0
 cd $PROJECT_ROOT/analysis
 ```
 
+OR if you want to preprocess round_1.0:
+```bash
+RESULTS_DIR=$PROJECT_ROOT/results/round_1.0
+```
+
 ### Step 2: Participant qualification
 The `qualify_participants.py` script implements the following inclusion criteria:
 1. Participants scored 100% on the two attention check item, with two measurements each. 
@@ -45,6 +50,11 @@ Use the `--exclude_pilot` or `exclude_round1` flags if you want to exclude that 
 
 ```bash
 python3 qualify_participants.py --raw_responses $RESULTS_DIR/results_80_relevance-answers.csv --output $RESULTS_DIR/results_filtered.tmp --exclude_round1
+```
+
+OR if doing round_1.0:
+```bash
+python3 qualify_participants.py --raw_responses $RESULTS_DIR/results_80_relevance-answers.csv --output $RESULTS_DIR/results_filtered.tmp
 ```
 
 
@@ -72,7 +82,9 @@ We use sequential least squares to find the values of `a` and `b` that maximize 
 the `beta-KL` measure and the relevance judgments.
 
 ```bash
-python3 fit_beta.py --training $PROJECT_ROOT/results/round_1.0/results_filtered.tmp --input $RESULTS_DIR/results_filtered.tmp
+python3 fit_beta.py \
+    --training $PROJECT_ROOT/results/round_1.0/results_filtered.tmp \
+    --input $RESULTS_DIR/results_filtered.tmp
 ```
 
 ### Step 5: Computing metrics
@@ -92,17 +104,20 @@ A complete list of predictors is as follows:
 - Pure second order belief change: `|prior_a + prior_b - (posterior_a + posterior_b)|`
 
 ```bash
-
-python3 compute_metrics.py --input $RESULTS_DIR/results_filtered.tmp --output $RESULTS_DIR/results_filtered.tmp
+python3 compute_metrics.py \
+    --input $RESULTS_DIR/results_beta.tmp \
+    --output $RESULTS_DIR/results_metrics.tmp
 ```
 
 ### Step 6: Clean up
 ```bash
-python3 finalize_preprocessing.py --input $RESULTS_DIR/results_filtered.tmp --output $RESULTS_DIR/results_preprocessed.csv
-rm $RESULTS_DIR/results_filtered.tmp
+python3 finalize_preprocessing.py \
+    --input $RESULTS_DIR/results_metrics.tmp \
+    --output $RESULTS_DIR/results_preprocessed.csv
+rm $RESULTS_DIR/*.tmp
 ```
 
-## Post processing relevance-only data
+## Appendix 1: Post processing relevance-only data
 The raw data is `data-raw-relevance-only.csv`
 ```bash
 RESULTS_DIR=$PROJECT_ROOT/results/relevance-only
@@ -113,3 +128,42 @@ Evaluate participant reasoning and attention and filter out unnecessary rows and
 ```bash
 python3 qualify_participants.py --raw_responses $RESULTS_DIR/data-raw-relevance-only.csv --output $RESULTS_DIR/results_preprocessed.csv --relevance-only
 ```
+
+## Appendix 2: Universal parameters
+
+If you want to find both metric-specific parameters and a set of universal parameters optimized jointly for all metrics:
+```bash
+python3 fit_beta.py \
+    --training $PROJECT_ROOT/results/round_1.0/results_filtered.tmp \
+    --input $RESULTS_DIR/results_filtered.tmp \
+    --output $RESULTS_DIR/results_beta.tmp \
+    --optimize_joint both
+```
+
+If you want to run a grid search over parameters and make nice heatmaps
+```bash
+python3 fit_beta.py \
+    --training $RESULTS_DIR/round_1.0/results_filtered.tmp \
+    --input $RESULTS_DIR/results_filtered.tmp \
+    --optimize_joint grid \
+    --output $PROJECT_ROOT/plotting/plots/fit_beta_heatmaps.pdf
+```
+
+## Appendix 3: Scaling metrics
+
+You may want to scale all metrics to lie between [0, 1]. If so:
+
+```bash
+python3 compute_metrics.py \
+    --input $RESULTS_DIR/results_beta.tmp \
+    --train $PROJECT_ROOT/results/round_1.0/results_beta.tmp \
+    --output $RESULTS_DIR/results_metrics.tmp \
+    --joint both \
+    --obj pearson \
+    --scale
+ ```
+
+You should update `--joint both` `--joint separate` or `--joint joint` 
+depending on how beta params were fit (see Appendix 2).
+
+You can also update `--obj pearson`, `--obj mse`, `--obj pearson_reg` among other options.

@@ -11,10 +11,7 @@ def kl(p, q):
     """
     return entropy([p, 1-p], [q, 1-q], base=2)
 
-def exp10(x):
-    return 1 - (10 ** (-1 * x))
-
-def exp(b, x):
+def g(x, b=math.e):
     return 1 - (b ** (-1 * x))
 
 def kl_util(p, q):
@@ -23,7 +20,7 @@ def kl_util(p, q):
     :param q: prior
     :return:
     """
-    return exp10(entropy([p, 1-p], [q, 1-q], base=2))
+    return g(kl(p, q))
 
 def entropy_reduction(p, q):
     """
@@ -90,22 +87,6 @@ def bf_utility_multi_weighted_avg(p_list, q_list):
         utils.append(p * bf_utility_polar(p, q))
     return sum(utils)
 
-
-
-# def exp_bayes_factor(p, q):
-#     """
-#     :param p: posterior
-#     :param q: prior
-#     :return: expontential transformation of absolute value of log of bayes factor
-#     NOTE: See simpler closed form above
-#     """
-    # if p == 1 and q == 1 or p == 0 and q == 0:
-    #     return 0
-    # else:
-    #     return exp10(abs(np.log10((np.float64(p) / (1-p)) * (np.float64(1-q) / q))))
-
-
-
 def posterior_distance(p):
     """
     :param p: posterior
@@ -142,7 +123,7 @@ def kl_util_dirichlet(Q, P):
     As usual, with KL(Q; P) Q represents the posterior, and P the prior.
     When these are beta distributions, Q[0] = \alpha, Q[1] = \beta.
     """
-    return exp(2, kl_dirichlet(Q, P))
+    return g(kl_dirichlet(Q, P))
 
 def entropy_dirichlet(P):
     """
@@ -191,6 +172,13 @@ def beta_bayes_factor_util(P, Q):
     """
     return math.log(beta_bayes_factor(P, Q) + 2)
 
+def beta_bayes_factor_util_1(P, Q):
+    """
+    :param P: prior params for dirichlet dist.
+    :param Q: posterior params for dirichlet dist.
+    :return:
+    """
+    return math.log(beta_bayes_factor(P, Q) + 1)
 
 def pure_second_order_belief_change(P, Q):
     """
