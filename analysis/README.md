@@ -3,12 +3,13 @@
 This directory contains scripts for results post-processing and analysis.
 
 ## Preregistered analysis
-The official preregistered analysis (including preregistered "exploratory" analysis) are all performed in `data-analysis-round-prereg.qmd`
+The official preregistered analysis (including preregistered "exploratory" analysis) are all performed in `data-analysis-01b-prereg.qmd`
 
 Other (related) files:
 
-- `data-analysis_main.qmd` - original exploratory DA based on pilot studies
-- `data-analysis_reproduceV01.qmd` - reproducing initial results with subsequent explorations (paper revision) 
+- `data-analysis-01a-main` - original exploratory DA based on pilot studies 
+- `data-analysis_02-RelOnly` - analysis of follow-up experiment (only relevance judgements) 
+- `data-analysis_03-extended4revision` - further exploration of additional measures or link functions
 
 ## Qualitative analysis
 The qualitative analysis is performed in `qualitative_analysis.ipynb`.

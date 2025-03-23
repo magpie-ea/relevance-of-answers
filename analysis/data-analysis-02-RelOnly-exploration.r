@@ -47,6 +47,9 @@ Lambert_test <- function(loo_comp) {
 d_FullExp <- read_csv("../results/round_2.0/results_preprocessed.csv") |> 
   # drop column with numbers
   select(-`...1`) |> 
+  # data exclusion based on attention & reasoning score (279 before | 235 after) 
+  filter(attention_score == 1) |> 
+  filter(reasoning_score >= 0.5) |> 
   # set "non-answers" to AnswerPolarity "positive"
   mutate(AnswerPolarity = ifelse(
     AnswerCertainty == "non_answer", 
@@ -64,13 +67,22 @@ d_FullExp <- read_csv("../results/round_2.0/results_preprocessed.csv") |>
                                         "high_certainty", "exhaustive"))
   ) |> 
   rename(sliderResponse = relevance_sliderResponse) |> 
-  mutate(experimentType = "FullExp") |>
-  select(submission_id, experimentType, group, StimID,
+  mutate(ExperimentType = "FullExp") |>
+  select(submission_id, ExperimentType, group, StimID,
          ContextType, AnswerPolarity, AnswerCertainty, sliderResponse)
 
+d_RelOnly <- read_csv("../results/relevance-only/results_preprocessed.csv")
+# inspect the distribution of reasoning & attention scores  
+d_RelOnly |> pull(attention_score) |> hist()
+d_RelOnly |> pull(reasoning_score) |> hist()
+
 # data from the relevance only replication
-d_RelOnly <- read_csv("../results/relevance-only/data-raw-relevance-only-full.csv") |> 
-  filter(TrialType == "main") |> 
+d_RelOnly <- read_csv("../results/relevance-only/results_preprocessed.csv") |> 
+  # drop column with numbers
+  select(-`...1`) |> 
+  # data exclusion based on attention & reasoning score (151 before | 56 after)
+  filter(attention_score == 1) |> 
+  filter(reasoning_score >= 0.5) |> 
   # set "non-answers" to AnswerPolarity "positive"
   mutate(AnswerPolarity = ifelse(
     AnswerCertainty == "non_answer", 
@@ -87,12 +99,24 @@ d_RelOnly <- read_csv("../results/relevance-only/data-raw-relevance-only-full.cs
                              levels = c("non_answer", "low_certainty", 
                                         "high_certainty", "exhaustive"))
   ) |> 
-  mutate(sliderResponse = sliderResponse/100) |>
-  select(submission_id, experimentType, group, StimID,
+  mutate(ExperimentType = "RelOnly") |>
+  select(submission_id, ExperimentType, group, StimID,
          ContextType, AnswerPolarity, AnswerCertainty, sliderResponse)
 
 # combined data from both experiments
 d_AllData <- bind_rows(d_FullExp, d_RelOnly)
+
+# descriptive stats
+
+descriptive_stats <- d_AllData |> 
+  group_by(ContextType, AnswerPolarity, AnswerCertainty, ExperimentType) |>
+  tidyboot_mean(sliderResponse)
+
+d_AllData |> 
+  group_by(ExperimentType) |>
+  tidyboot_mean(sliderResponse)
+
+
 
 ## plot the distribution of relevance ratings ----
 
@@ -119,8 +143,9 @@ plot_positive <- d_AllData |>
                                      AnswerCertainty == "non_answer" ~ "non-answer",
                                      TRUE ~ "exhaustive",
   ) |> factor(level = c("non-answer", "low", "high","exhaustive"))) |>
-  ggplot(aes(x = sliderResponse, color = experimentType, fill = experimentType)) +
+  ggplot(aes(x = sliderResponse, color = ExperimentType, fill = ExperimentType)) +
   facet_grid(AnswerCertainty ~ ContextType , scales = "free") +
+  # histogram with dodged bars
   geom_density(alpha = 0.2, linewidth = 1.5) +
   xlab("relevance rating") + ylab("") +
   ggtitle("AnswerPolarity: positive")
@@ -132,8 +157,8 @@ plot_negative <- d_AllData |>
                                      AnswerCertainty == "non_answer" ~ "non-answer",
                                      TRUE ~ "exhaustive",
   ) |> factor(level = c("non-answer", "low", "high","exhaustive"))) |>
-  ggplot(aes(x = sliderResponse, color = experimentType, fill = experimentType)) +
-  facet_grid(AnswerCertainty ~ ContextType , scales = "free") +
+  ggplot(aes(x = sliderResponse, color = ExperimentType, fill = ExperimentType)) +
+  facet_grid(AnswerCertainty ~ ContextType, scales = "free") +
   geom_density(alpha = 0.2, linewidth = 1.5) +
   xlab("relevance rating") + ylab("") +
   ggtitle("AnswerPolarity: negative")
@@ -145,10 +170,10 @@ plot_positive / plot_negative
 
 fit_model <- function(d, model_name, refit = T, withExpVariable = F) {
   
-  # brms formula: whether to use 'experimentType' as predictor or not
+  # brms formula: whether to use 'ExperimentType' as predictor or not
   if (withExpVariable) {
     formula = brms::brmsformula(
-      sliderResponse ~ ContextType * AnswerCertainty * AnswerPolarity + experimentType +
+      sliderResponse ~ ContextType * AnswerCertainty * AnswerPolarity * ExperimentType +
         (1 + ContextType + AnswerCertainty + AnswerPolarity || StimID) +
         (1 + ContextType + AnswerCertainty + AnswerPolarity || submission_id)
     )  
@@ -178,13 +203,8 @@ fit_model <- function(d, model_name, refit = T, withExpVariable = F) {
   return(fit)
 }
 
-
-# fit_FullExp <- fit_model(d_FullExp, model_name = "FullExp", refit = T )
-# fit_RelOnly <- fit_model(d_RelOnly, model_name = "RelOnly", refit = T )
-
 fit_AllData_smpl <- fit_model(d_AllData, model_name = "AllData", refit = T, withExpVariable = F)
 fit_AllData_cmpl <- fit_model(d_AllData, model_name = "AllData", refit = T, withExpVariable = T)
-
 
 ## compare models with LOO ----
 
@@ -204,9 +224,30 @@ loo_comp
 Lambert_test(loo_comp)
 
 
-# ## check main effects of AnswerPolarity and ContextType ----
+## check main effects of AnswerPolarity and ContextType ----
+
+# fit_RelOnly <- fit_model(d_RelOnly, model_name = "RelOnly", refit = T )
 # 
-# fit_to_use = fit_without_group_ordBeta
+# predicted_draws <- d_RelOnly |> 
+#   select(ContextType, AnswerPolarity, AnswerCertainty) |>
+#   unique() |> 
+#   tidybayes::add_predicted_draws(
+#     fit_RelOnly, 
+#     ndraws = 200, 
+#     allow_new_levels = T
+#     ) 
+# 
+# predicted_draws |> 
+#   filter(AnswerPolarity == "positive") |>
+#   ggplot(aes(x = .prediction)) +
+#   geom_density(color = CSP_colors[1]) +
+#   geom_density(aes(x = sliderResponse), color = CSP_colors[2], data = d_RelOnly) +
+#   facet_wrap(ContextType ~ AnswerCertainty, scales = "free") +
+#   ylab("density") + xlab("relevance rating") +
+#   theme(legend.position = "none")
+
+# 
+# fit_to_use = fit_RelOnly
 # 
 # ## expected ordering relation?
 # ## non-answers vs low-certainty => poster = 1
@@ -263,12 +304,18 @@ Lambert_test(loo_comp)
 # 
 # cellComparisons <- tribble(
 #   ~comparison, ~measure, ~posterior, ~"HDI (low)", ~"HDI (high)",
-#   "non-answer < low certainty" , "relevance", nonAns_VS_low$post_prob, nonAns_VS_low$l_ci, nonAns_VS_low$u_ci,
-#   "low certain < high certain" , "relevance", low_VS_high$post_prob, low_VS_high$l_ci, low_VS_high$u_ci,
-#   "high certain < exhaustive" , "relevance", high_VS_exh$post_prob, high_VS_exh$l_ci, high_VS_exh$u_ci,
-#   "answer: pos < neg", "relevance", AnswerPolarity_main$post_prob, AnswerPolarity_main$l_ci, AnswerPolarity_main$u_ci,
-#   "context: neutral > pos", "relevance", ContextType_neutral_positive$post_prob, ContextType_neutral_positive$l_ci, ContextType_neutral_positive$u_ci,
-#   "context: neutral > neg", "relevance", ContextType_neutral_negative$post_prob, ContextType_neutral_negative$l_ci, ContextType_neutral_negative$u_ci
+#   "non-answer < low certainty" , "relevance", nonAns_VS_low$post_prob, 
+                 # nonAns_VS_low$l_ci, nonAns_VS_low$u_ci,
+#   "low certain < high certain" , "relevance", low_VS_high$post_prob, 
+                 # low_VS_high$l_ci, low_VS_high$u_ci,
+#   "high certain < exhaustive" , "relevance", high_VS_exh$post_prob, 
+                 # high_VS_exh$l_ci, high_VS_exh$u_ci,
+#   "answer: pos < neg", "relevance", AnswerPolarity_main$post_prob, 
+                 # AnswerPolarity_main$l_ci, AnswerPolarity_main$u_ci,
+#   "context: neutral > pos", "relevance", ContextType_neutral_positive$post_prob, 
+                 # ContextType_neutral_positive$l_ci, ContextType_neutral_positive$u_ci,
+#   "context: neutral > neg", "relevance", ContextType_neutral_negative$post_prob, 
+                 # ContextType_neutral_negative$l_ci, ContextType_neutral_negative$u_ci
 # )
 # 
 # write_csv(cellComparisons,
