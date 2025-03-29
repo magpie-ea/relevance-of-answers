@@ -5,7 +5,10 @@ format:
   html:
     code-fold: true
     self-contained: true
-    highlight-style: zenburn
+    highlight-style: atom-one
+    theme:
+      light: materia
+      dark: darkly
 execute:
   error: false
   warning: false
@@ -73,15 +76,10 @@ myvars = list()
 # add with: myvars[name] = value
 ```
 
-```{r}
-source('xx-faintr_functions.R')
-source('xx-faintr_helpers.R')
-```
-
 # Read & massage the data
 
-The data is pre-processed (using Python).
-We load it and rearrange for convenience.
+Data preprocessing was done in Python.
+We here load the preprocessed data and rearrange for convenience.
 
 ```{r read-data}
 #| results: hide
@@ -109,22 +107,71 @@ d <- read_csv("../results/round_2.0/results_preprocessed.csv") |>
   ) 
 ```
 
+We explored several versions of various relevance metrics (as reported in the paper + appendix).
+Here we select only those versions of the relevance metrics used for the main analyses as reported in the paper:
+
+```{r select-measures-for-main-analysis}
+#| results: hide
+#| warning: false
+#| message: false
+
+d <- d |>
+  # columns to keep
+  select(
+    "submission_id",
+    "group",
+    "StimID",
+    "AnswerCertainty",
+    "AnswerPolarity",
+    "ContextType",
+    "attention_score",
+    "reasoning_score",
+    "prior_sliderResponse",
+    "posterior_sliderResponse",
+    "posterior_confidence",
+    "prior_confidence",
+    "relevance_sliderResponse",
+    "first_order_belief_change",                   
+    "second_order_belief_change",
+    "pure_second_order_belief_change_scaled",
+    "entropy_change_scaled",
+    "beta_entropy_change_scaled",
+    "kl_scaled",
+    "beta_kl_scaled",
+    "bayes_factor_utility",
+    "beta_bayes_factor_utility_1_scaled"
+    ) |> 
+  rename(
+    "ProbabilityChange" = "first_order_belief_change",
+    "CommitmentChange" = "second_order_belief_change",
+    "ConcentrationChange" = "pure_second_order_belief_change_scaled",
+    "EntropyChange" = "entropy_change_scaled",
+    "EntropyChange_2ndOrder" = "beta_entropy_change_scaled",
+    "KLUtility" = "kl_scaled",
+    "KLUtility_2ndOrder" = "beta_kl_scaled",
+    "BayesFactor" = "bayes_factor_utility",
+    "BayesFactor_2ndOrder" = "beta_bayes_factor_utility_1_scaled"
+  )
+
+```
+
 # Data exclusion
 
-We exclude all data from participants who:
+As per preregistered protocol, we exclude all data from participants who:
 
--   score less than perfect on all attention checks,
+-   scored less than perfect on all attention checks,
 -   scored less than 0.5 on reasoning tasks, or
--   has task-sensitivity of not more than 0.75
+-   have task-sensitivity of not more than 0.75
 
-Task sensitivity is the proportion of critical trials, excluding non-answer trials, in which the change between prior and posterior rating was bigger than 0.05 or there was a non-zero change in confidence rating.
+Task sensitivity is the proportion of critical trials (excluding non-answer trials) in which the change between prior and posterior rating was bigger than 0.05 or there was a non-zero change in confidence rating.
 
 We first add the task-sensitivity score:
 
-```{r prep-data}
+```{r prep-data-with-quality-check-metrics}
 d <- d |> as_tibble() |> 
   mutate(answer_class  = ifelse(AnswerCertainty != "non_answer", "answer", "non_answer"),
-         belief_change = abs(prior_sliderResponse - posterior_sliderResponse) >= 0.05 |                                     prior_confidence != posterior_confidence,
+         belief_change = abs(prior_sliderResponse - posterior_sliderResponse) >= 0.05 |
+                                prior_confidence != posterior_confidence,
          deviant = case_when(answer_class == "answer" ~ !belief_change,
                              answer_class != "answer" ~  FALSE)
          ) |> 
@@ -133,10 +180,10 @@ d <- d |> as_tibble() |>
   select(- answer_class, - belief_change, - deviant)
 ```
 
-Apply exclusion criteria:
+Then we apply our exclusion criteria:
 
 ```{r apply-exclusions}
-#| echo: false
+#| echo: true
 
 # initial number of participants
 initial_nr_participants <- d |> pull(submission_id) |> unique() |> length()
@@ -164,10 +211,9 @@ myvars["nr_participants_included"] <- included_nr_participants
 
 # Exploring the effect of the experimental factors
 
-The experiment had the following factors:
+The experiment had the following main factors:
 
--   `group`: whether a participant rated the 'helpfulness' or the 'relevance' of the answer (between-subjects variable)
--   `ContextType`: whether the context made a 'no' or a 'yes' answer more likely /a priori/ or whether it was neutral (within-subjects)
+-   `ContextType`: whether the context made a 'no' or a 'yes' answer more likely *a priori* or whether it was neutral (within-subjects)
 -   `AnswerCertainty`: how much information the answer provides towards a fully resolving answer (within-subjects)
 -   `AnswerPolarity`: whether the answer suggests or implies a 'no' or a 'yes' answer (within-subjects)
     -   'non-answers' are treated as 'positive' for technical purposes, but this does not influence relevant analyses
@@ -209,7 +255,7 @@ if (rerun_models) {
       (1 + ContextType | StimID) + 
       (1 + ContextType | submission_id),
     data = d,
-    iter = 3000 # ensure sufficent ESS 
+    iter = 3000 
   )
   saveRDS(fit_contextType_SC, "cachedModels-round2/fit_contextType_SC.Rds")
 } else{
@@ -222,13 +268,13 @@ We use the `faintr` package to extract information on these directed comparisons
 
 ```{r}
 ContextType_SC_negVSneu <- 
-  compare_groups(
+  faintr::compare_groups(
     fit_contextType_SC, 
     lower = ContextType == "negative",
     higher = ContextType == "neutral" 
   )
 ContextType_SC_neuVSpos <- 
-  compare_groups(
+  faintr::compare_groups(
     fit_contextType_SC, 
     lower = ContextType == "neutral",
     higher = ContextType == "positive"
@@ -249,7 +295,7 @@ d |> mutate(prior_confidence = factor(prior_confidence, levels = 1:7)) |>
   ylab("")
 ```
 
-To scrutinize the effect of `ContextType` on participants expressed confidence in their prior ratings, we use a ordered-logit regression (since prior confidence ratings are from a rating scale).
+To scrutinize the effect of `ContextType` on participants expressed confidence in their prior ratings, we use a ordered-logit (cumulative logit) regression (since prior confidence ratings are from a rating scale).
 
 ```{r}
 #| results: 'hide'
@@ -316,7 +362,7 @@ knitr::kable(results_ContextType_SanityCheck)
 ```
 
 The `ContextType` manipulation seems to have worked as expected for the prior ratings: lower in 'negative' than in 'neutral' than in 'positive'.
-There is no support for differences in the confidence ratings, except that the positive context case seems to induce more confidence than the neutral context.
+As for the confidence ratings, the `ContextType` manipulation seems to have induced lower confidence for the 'neutral' condition than for the 'negative' and 'positive' condition.
 
 ### Effects of `AnswerPolarity` and `AnswerCertainty` on `beliefChange`
 
@@ -354,7 +400,6 @@ Notice that at the time of answer the questions related to the posterior, partic
 #| warning: false
 #| message: false
 
-# TODO: strictly speaking, this is data from a bounded scale; different regression model would be appropiate
 if (rerun_models) {
   fit_answer_SC <- brm(
     formula = beliefChange ~ ContextType * AnswerCertainty * AnswerPolarity +
@@ -362,7 +407,9 @@ if (rerun_models) {
       (1 + ContextType + AnswerCertainty + AnswerPolarity | submission_id),
     data = d |> filter(AnswerCertainty != "non_answer") |> 
       mutate(beliefChange = posterior_sliderResponse - prior_sliderResponse,
-             beliefChange = ifelse(AnswerPolarity == "positive", beliefChange, - beliefChange))
+             beliefChange = ifelse(AnswerPolarity == "positive", beliefChange, - beliefChange)),
+    # adapt delta
+    control = list(adapt_delta = 0.85)
   )
   saveRDS(fit_answer_SC, "cachedModels-round2/fit_answer_SC.Rds")
 } else{
@@ -372,18 +419,19 @@ if (rerun_models) {
 
 We check if inferred cell means are credibly bigger than zero, for all six relevant design cells (facets in the plot above).
 
-```{r}
-# 1. Check if belief change in each cell is bigger than zero
-cellDraws_answers <- tibble(
-  low_pos  = extract_cell_draws(fit_answer_SC, AnswerCertainty == "low_certainty"  & AnswerPolarity == "positive", "low_pos")$low_pos,
-  high_pos = extract_cell_draws(fit_answer_SC, AnswerCertainty == "high_certainty" & AnswerPolarity == "positive", "high_pos")$high_pos,
-  exh_pos  = extract_cell_draws(fit_answer_SC, AnswerCertainty == "exhaustive"     & AnswerPolarity == "positive", "exh_pos")$exh_pos,
-  low_neg  = extract_cell_draws(fit_answer_SC, AnswerCertainty == "low_certainty"  & AnswerPolarity == "negative", "low_neg")$low_neg,
-  high_neg = extract_cell_draws(fit_answer_SC, AnswerCertainty == "high_certainty" & AnswerPolarity == "negative", "high_neg")$high_neg,
-  exh_neg  = extract_cell_draws(fit_answer_SC, AnswerCertainty == "exhaustive"     & AnswerPolarity == "negative", "exh_neg")$exh_neg
+```{r extract-posterior-probabilities-for-effects-of-belief-change}
+# Check if belief change in each cell is bigger than zero
+# - first exctract samples from the posterior estimates of means of relevant conditions
+cellDraws_answers <- cbind(
+  filter_cell_draws(fit_answer_SC, AnswerCertainty == "low_certainty"  & AnswerPolarity == "positive", "low_pos")[1],
+  filter_cell_draws(fit_answer_SC, AnswerCertainty == "high_certainty" & AnswerPolarity == "positive", "high_pos")[1],
+  filter_cell_draws(fit_answer_SC, AnswerCertainty == "exhaustive"     & AnswerPolarity == "positive", "exh_pos")[1],
+  filter_cell_draws(fit_answer_SC, AnswerCertainty == "low_certainty"  & AnswerPolarity == "negative", "low_neg")[1],
+  filter_cell_draws(fit_answer_SC, AnswerCertainty == "high_certainty" & AnswerPolarity == "negative", "high_neg")[1],
+  filter_cell_draws(fit_answer_SC, AnswerCertainty == "exhaustive"     & AnswerPolarity == "negative", "exh_neg")[1]
 ) 
 
-# all posterior 95% HDIs are wayabove 0 
+# all posterior 95% HDIs are way above 0 
 apply( cellDraws_answers |> as.matrix(), MARGIN = 2, aida::summarize_sample_vector)
 
 # posterior probability of mean bigger 0 for each cell is almost 1 everywhere
@@ -439,120 +487,9 @@ I sum, it seems that the stimuli were adequately created to implement the intend
 ## Predicting relevance in terms of the experimental factors
 
 We want to explore how relevance ratings depend on the experimental manipulations.
-First, we check whether the `group` variable (the trigger word: 'helpful' vs 'relevant') is important.
-If not, we can simplify subsequent analyses.
+We therefore investigate the effects which variables `AnswerCertainty` `AnswerPolarity` and `ContextType` have on relevance ratings, starting with a visualization:
 
-Next, we investigate the effects variables like `AnswerCertainty` `AnswerPolarity` etc. on relevance ratings.
-
-### Can we gloss over the different trigger words?
-
-To simplify analyses, it would be helpful to know whether we can gloss over the `group` manipulation.
-So, does it matter whether participants were asked to rate *relevance* or *helpfulness*?
-
-To start with, let's just look at whether there is a main effect, which there is not (possibly also partially explained away by by-subject random slopes):
-
-To further investigate this contrast, we may fit two beta regression models, one with and one without the `group` factor.
-We check whether there is a credible main effect of `group` in the full model and a significant difference in LOO score when comparing these models.
-The former is for fun, the latter determines whether we should lump trigger words together.
-
-```{r}
-#| results: hide
-#| warning: false
-#| message: false
-
-if (rerun_models) {
-  
-  # TODO too small ESS
-  fit_with_group_ordBeta <- ordbetareg::ordbetareg(
-    # must omitt interactions in the REs to ensure proper fit
-    formula = relevance_sliderResponse ~ group * ContextType * AnswerCertainty * AnswerPolarity + 
-      (1 + group + ContextType + AnswerCertainty + AnswerPolarity || StimID) + 
-      (1 + ContextType + AnswerCertainty + AnswerPolarity || submission_id),
-    data = d,
-    # set this prior, otherwise there are errors
-    coef_prior_SD = 5,
-    save_pars = save_pars(all=T)
-  )
-  
-  fit_without_group_ordBeta <- ordbetareg::ordbetareg(
-    relevance_sliderResponse ~ ContextType * AnswerCertainty * AnswerPolarity +
-      (1 + ContextType + AnswerCertainty + AnswerPolarity || StimID) + 
-      (1 + ContextType + AnswerCertainty + AnswerPolarity || submission_id),
-    data = d,
-    coef_prior_SD = 5,
-    save_pars = save_pars(all=TRUE)
-  )
-  saveRDS(fit_with_group_ordBeta, "cachedModels-round2/fit_with_group_ordBeta.Rds")
-  saveRDS(fit_without_group_ordBeta, "cachedModels-round2/fit_without_group_ordBeta.Rds")
-} else {
-  fit_with_group_ordBeta    <- read_rds("cachedModels-round2/fit_with_group_ordBeta.Rds")
-  fit_without_group_ordBeta <- read_rds("cachedModels-round2/fit_without_group_ordBeta.Rds")
-}
-```
-
-We inspect whether there is a main effect of `group` in the full model:
-
-```{r}
-# main effect of "group" ?
-group_main <- compare_groups(
-  fit_with_group_ordBeta,
-  higher = group == "relevant",
-  lower  = group == "helpful"
-)
-print(group_main)
-```
-
-The posterior for the main factor of `group` is credibly different from zero.
-
-But that is not the best criterion to decide whether the `group` distinction is relevant for predictions.
-We there also compare models with LOO cross-validation:
-
-```{r}
-if (rerun_models) {
-  loo_comp <- loo::loo_compare(
-    list("w/__group" = loo(fit_with_group_ordBeta),
-                           # moment_match = TRUE, 
-                           # reloo = TRUE),
-         "w/o_group" = loo(fit_without_group_ordBeta)))
-                           # moment_match = TRUE,
-                           # reloo = TRUE)))
-  saveRDS(loo_comp, "cachedModels-round2/loo_comp_groups.Rds")
-} else {
-  loo_comp = read_rds("cachedModels-round2/loo_comp_groups.Rds")
-}
-loo_comp
-Lambert_test(loo_comp)
-```
-
-It appears that, when comparing these models with REs, the lesioned model is numerically even slightly better than the model including `group`, but not by a substantial margin.
-From a predictive point of view, including `group` does not add substantial value.
-We will therefore lump trigger words together in the following.
-
-### Effect of `AnswerPolarity`, `AnswerCertainty` and `ContextType` on relevance ratings
-
-To investigate further which experimental factors influence the ratings of relevance of an answer, start by a visualization:
-
-```{r}
-#| echo: false
-
-p_relevant <- d |>
-  filter(group == "relevant") |>
-  ggplot(aes(x = relevance_sliderResponse, color = AnswerPolarity, fill = AnswerPolarity)) +
-  facet_grid(AnswerCertainty ~ ContextType , scales = "free") +
-  geom_density(alpha = 0.3) +
-  ggtitle("trigger word: 'relevant'")
-
-p_helpful <- d |>
-  filter(group == "helpful") |>
-  ggplot(aes(x = relevance_sliderResponse, color = AnswerPolarity, fill = AnswerPolarity)) +
-  facet_grid(AnswerCertainty ~ ContextType , scales = "free") +
-  geom_density(alpha = 0.3) +
-  ggtitle("trigger word: 'helpful'")
-
-plot_grid(p_relevant, p_helpful, nrow=1)
-```
-
-```{r}
+```{r plotting-relevance-ratings-as-a-function-of-experimental-manipulations}
 d |> 
   mutate(AnswerCertainty = case_when(AnswerCertainty == "low_certainty" ~ "low",
                                      AnswerCertainty == "high_certainty" ~ "high",
@@ -567,64 +504,93 @@ d |>
 ggsave("plots/relevance-ratings.pdf", scale=1.2, width = 10, height=6)
 ```
 
+Fitting the regression model, predicting relevance in terms of our main experimental factors:
+
+```{r}
+#| results: hide
+#| warning: false
+#| message: false
+
+if (rerun_models) {
+
+  fit_relevance_expFactors <- ordbetareg::ordbetareg(
+    relevance_sliderResponse ~ ContextType * AnswerCertainty * AnswerPolarity +
+      (1 + ContextType + AnswerCertainty + AnswerPolarity || StimID) +
+      (1 + ContextType + AnswerCertainty + AnswerPolarity || submission_id),
+    data = d,
+    coef_prior_SD = 5,
+    save_pars = save_pars(all=TRUE)
+  )
+  saveRDS(fit_relevance_expFactors, "cachedModels-round2/fit_relevance_expFactors.Rds")
+} else {
+  fit_relevance_expFactors <- read_rds("cachedModels-round2/fit_relevance_expFactors.Rds")
+}
+```
+
 Let's now look at a bunch of contrasts (based on the previously fitted full model).
 
 ```{r effect-of-experimental-manipulations-on-relevance}
 
-# fit_to_use = fit
-fit_to_use = fit_without_group_ordBeta
-
 ## expected ordering relation?
+
 ## non-answers vs low-certainty => poster = 1
 nonAns_VS_low  <- compare_groups(
-  fit_to_use,
+  fit_relevance_expFactors,
   lower  = AnswerCertainty == "non_answer",
   higher = AnswerCertainty == "low_certainty"
 )
 ## low-certainty vs high-certainty => poster = 0.9922
 low_VS_high <- compare_groups(
-  fit_to_use,
+  fit_relevance_expFactors,
   lower  = AnswerCertainty == "low_certainty",
   higher = AnswerCertainty == "high_certainty"
 )
 ## high-certainty vs exhaustive => poster = 1
 high_VS_exh <- compare_groups(
-  fit_to_use,
+  fit_relevance_expFactors,
   lower  = AnswerCertainty == "high_certainty",
   higher = AnswerCertainty == "exhaustive"
 )
 
-
 ## effects of AnswerPolarity?
+
 AnswerPolarity_main <- compare_groups(
-  fit_to_use,
+  fit_relevance_expFactors,
   lower  = AnswerPolarity == "positive" & AnswerCertainty != "non_answer",
   higher = AnswerPolarity == "negative" & AnswerCertainty != "non_answer"
 )
 
 AnswerPolarity_lowCertain <- compare_groups(
-  fit_to_use,
+  fit_relevance_expFactors,
   lower  = AnswerPolarity == "positive" & AnswerCertainty == "low_certainty",
   higher = AnswerPolarity == "negative" & AnswerCertainty == "low_certainty"
 )
 
 AnswerPolarity_highCertain <-compare_groups(
-  fit_to_use,
+  fit_relevance_expFactors,
   lower  = AnswerPolarity == "positive" & AnswerCertainty == "high_certainty",
   higher = AnswerPolarity == "negative" & AnswerCertainty == "high_certainty"
 )
 
 AnswerPolarity_exhaustive <-compare_groups(
-  fit_to_use,
+  fit_relevance_expFactors,
   lower  = AnswerPolarity == "positive" & AnswerCertainty == "exhaustive",
   higher = AnswerPolarity == "negative" & AnswerCertainty == "exhaustive"
 )
 
 ContextType_neutral_negative <- 
-  compare_groups(fit_to_use, higher = ContextType == "neutral", lower = ContextType == "negative")
+  compare_groups(
+    fit_relevance_expFactors, 
+    higher = ContextType == "neutral", 
+    lower = ContextType == "negative"
+    )
 
-ContextType_neutral_positive <- 
-  compare_groups(fit_to_use, higher = ContextType == "neutral", lower = ContextType == "positive")
+ContextType_neutral_positive <-
+  compare_groups(
+    fit_relevance_expFactors,
+    higher = ContextType == "neutral",
+    lower = ContextType == "positive"
+  )
 
 
 cellComparisons <- tribble(
@@ -645,17 +611,17 @@ knitr::kable(cellComparisons)
 
 The table shows results indicating that there are (non-surprising) effects of `AnswerType` with non-answers rated as least relevant, followed by low-certainty, then high-certainty answers, and final exhaustive answers.
 There is no (strong) indication for a main effect of `AnswerPolarity` or `ContextType`.
-The lack of an effect of `ContextType` might be interpreted as *prima facie* evidence in favor of quantitative notions or relevance that do not take the prior into account (at least not very prominently).
+The lack of an effect of `ContextType` might be interpreted as *prima facie* evidence in favor of quantitative notions of relevance that do not take the prior into account (at least not very prominently).
 
 Here is a plot of the relevant posterior draws visually supporting why we compared the three factor levels of `ContextType` in the way we did (`positive` is the lowest, `neutral` the highest, but this difference is still not strongly indicative of a difference (0 included in HDI)):
 
 ```{r}
 
 draws_ContextType <- 
-  tibble(
-    positive = extract_cell_draws(fit_to_use, ContextType == "positive", colname = "positive")$positive,
-    negative = extract_cell_draws(fit_to_use, ContextType == "negative", colname = "negative")$negative,
-    neutral  = extract_cell_draws(fit_to_use, ContextType == "neutral",  colname = "neutral" )$neutral
+  cbind(
+    filter_cell_draws(fit_relevance_expFactors, ContextType == "positive", colname = "positive")[1],
+    filter_cell_draws(fit_relevance_expFactors, ContextType == "negative", colname = "negative")[1],
+    filter_cell_draws(fit_relevance_expFactors, ContextType == "neutral" , colname = "neutral" )[1]
   ) |> pivot_longer(cols = everything())
 
 draws_ContextType |> 
@@ -671,7 +637,7 @@ Research hypothesis 3 is about different notions of quantifying informational re
 ## Hypothesis 1: first-order belief change explains relevance ratings
 
 The hypothesis is that higher belief changes (induced by the answer) lead to higher relevance ratings.
-We test this hypothesis by a linear beta regression model (with maximal random effects) that regresses relevance ratings against the absolute difference between prior and posterior ratings (`first_order_belief_change`).
+We test this hypothesis by a linear beta regression model (with maximal random effects) that regresses relevance ratings against the absolute difference between prior and posterior ratings (`ProbabilityChange`).
 We judge there to be evidence in favor of this hypothesis if the relevant slope coefficient is estimated to be credibly bigger than zero (posterior probability \> 0.944; an arbitrary value to indicate that there is nothing special about 0.95) and a loo-based model comparison with an intercept only model substantially favors the model that includes the relevant slope.
 
 Run the regression model:
@@ -681,17 +647,14 @@ Run the regression model:
 #| warning: false
 #| message: false
 
-rerun_models <- TRUE
-
 if (rerun_models) {
   
   fit_belief_diff <- ordbetareg(
-    formula = relevance_sliderResponse ~ first_order_belief_change + 
-      (1 + first_order_belief_change | submission_id) + (1 + first_order_belief_change | StimID),
+    formula = relevance_sliderResponse ~ ProbabilityChange + 
+      (1 + ProbabilityChange | submission_id) + (1 + ProbabilityChange | StimID),
     data = d
   )
   
-  # TODO check how to run Intercept-only model in ordbetareg
   fit_belief_diff_interceptOnly <- ordbetareg(
     formula = brms::bf(relevance_sliderResponse ~ 1, center= FALSE),
     data = d |> mutate(Int = 1)
@@ -709,7 +672,7 @@ if (rerun_models) {
 Test hypothesis 1:
 
 ```{r test-hypothesis-1}
-hyp1_summary <- brms::hypothesis(fit_belief_diff, "first_order_belief_change > 0")
+hyp1_summary <- brms::hypothesis(fit_belief_diff, "ProbabilityChange > 0")
 loo_comp_hyp1 <- loo_compare(
   list("w/__beliefDiff" = loo(fit_belief_diff),
        "w/o_beliefDiff" = loo(fit_belief_diff_interceptOnly)))
@@ -736,7 +699,7 @@ We find support for hypothesis one.
 
 ## Hypothesis 2: confidence change additionally contributes to relevance rating
 
-We also hypothesize that change in confidence (`second_order_belief_change`) ratings additionally contributes to predicting relevance ratings.
+We also hypothesize that change in confidence (`CommitmentChange`) ratings additionally contributes to predicting relevance ratings.
 Concretely, we address this hypothesis with a linear beta regression model like for hypothesis 1, but also including the absolute difference in confidence ratings for before and after the answer (and the interaction term).
 We use the maximal RE-structure.
 We speak of evidence in favor of this hypothesis if the relevant posterior slope parameter is credibly bigger than zero and a loo-based model comparison favors the more complex model.
@@ -749,15 +712,14 @@ Run the regression model:
 #| warning: false
 #| message: false
 
-rerun_models <- TRUE
-
 if (rerun_models) {
   
   fit_confidence_diff <- ordbetareg(
-    formula = relevance_sliderResponse ~ first_order_belief_change * second_order_belief_change + 
-      (1 + first_order_belief_change * second_order_belief_change | submission_id) + 
-      (1 + first_order_belief_change * second_order_belief_change | StimID),
-    data = d
+    formula = relevance_sliderResponse ~ ProbabilityChange * CommitmentChange + 
+      (1 + ProbabilityChange * CommitmentChange | submission_id) + 
+      (1 + ProbabilityChange * CommitmentChange | StimID),
+    data = d,
+    control = list(adapt_delta = 0.95)
   )
   
   write_rds(fit_confidence_diff, "cachedModels-round2/fit_confidence_diff.rds")
@@ -770,9 +732,9 @@ if (rerun_models) {
 Test Hypothesis 2:
 
 ```{r test-hypothesis-2}
-hyp2_summary <- brms::hypothesis(fit_confidence_diff, "second_order_belief_change > 0")
+hyp2_summary <- brms::hypothesis(fit_confidence_diff, "CommitmentChange > 0")
 loo_comp_hyp2 <- loo_compare(list("w/__confidence" = loo(fit_confidence_diff),
-                             "w/o_confidence" = loo(fit_belief_diff)))
+                                  "w/o_confidence" = loo(fit_belief_diff)))
 loo_comp_hyp2
 # Lambert's z-score test
 Lambert_test(loo_comp_hyp2)
@@ -795,7 +757,7 @@ We find support for hypothesis two.
 
 ## Hypothesis 3: "Bayes Factor utility" is the best single-factor predictor of relevance ratings
 
-The third hypothesis is that the `bayes_factor_utility` is a better (single-factor, linear) predictor of `relevance_sliderResponse` than `kl_utility` and `entropy_change`.
+The third hypothesis is that the `BayesFactor` is a better (single-factor, linear) predictor of `relevance_sliderResponse` than `KLUtility` and `EntropyChange`.
 We address this hypothesis with LOO cross-validation.
 We also directly include the exploratory hypothesis 1 here, thus comparing *all* single-factor models.
 
@@ -816,7 +778,7 @@ if (rerun_models) {
   
   # ER
   fit_loo_ER <- ordbetareg(
-    get_single_factor_formula("entropy_change"),
+    get_single_factor_formula("EntropyChange"),
     iter = 6000,
     save_pars = save_pars(all = T),
     data = d,
@@ -825,66 +787,75 @@ if (rerun_models) {
   
   # KL
   fit_loo_KL <- ordbetareg(
-    get_single_factor_formula("kl_utility"),
+    get_single_factor_formula("KLUtility"),
     iter = 6000,
     save_pars = save_pars(all = T),
     data = d,
-    control = list(adapt_delta = 0.9)
+    control = list(adapt_delta = 0.8)
   ) |> add_criterion("loo", model_name = "KL")
   
   # BF
   fit_loo_BF <- ordbetareg(
-    get_single_factor_formula("bayes_factor_utility"),
+    get_single_factor_formula("BayesFactor"),
     iter = 6000,
     save_pars = save_pars(all = T),
     data = d,
-    control = list(adapt_delta = 0.9)
+    control = list(adapt_delta = 0.8)
   ) |> add_criterion("loo", model_name = "BF")
   
   # ER_beta
   fit_loo_ER_beta <- ordbetareg(
-    get_single_factor_formula("beta_entropy_change"),
+    get_single_factor_formula("EntropyChange_2ndOrder"),
     iter = 6000,
     save_pars = save_pars(all = T),
     data = d,
-    control = list(adapt_delta = 0.9)
+    control = list(adapt_delta = 0.85)
   ) |> add_criterion("loo", model_name = "ER_beta")
   
   # KL_beta
   fit_loo_KL_beta <- ordbetareg(
-    get_single_factor_formula("beta_kl_utility"),
+    get_single_factor_formula("KLUtility_2ndOrder"),
     iter = 6000,
     save_pars = save_pars(all = T),
     data = d,
-    control = list(adapt_delta = 0.9)
+    control = list(adapt_delta = 0.8)
   ) |> add_criterion("loo", model_name = "KL_beta")
   
   # BF_beta
   fit_loo_BF_beta <- ordbetareg(
-    get_single_factor_formula("beta_bayes_factor_utility"),
+    get_single_factor_formula("BayesFactor_2ndOrder"),
     iter = 6000,
     save_pars = save_pars(all = T),
     data = d,
-    control = list(adapt_delta = 0.9)
+    control = list(adapt_delta = 0.95)
   ) |> add_criterion("loo", model_name = "BF_beta")
   
   # belief_diff 
   fit_loo_belief_diff <- ordbetareg(
-    get_single_factor_formula("first_order_belief_change"),
+    get_single_factor_formula("ProbabilityChange"),
     iter = 6000,
     save_pars = save_pars(all = T),
     data = d,
-    control = list(adapt_delta = 0.9)
+    control = list(adapt_delta = 0.8)
   ) |> add_criterion("loo", model_name = "belief_diff")
   
   # confidence_diff 
   fit_loo_confidence_diff <- ordbetareg(
-    get_single_factor_formula("second_order_belief_change"),
+    get_single_factor_formula("CommitmentChange"),
+    iter = 6000,
+    save_pars = save_pars(all = T),
+    data = d,
+    control = list(adapt_delta = 0.8)
+  ) |> add_criterion("loo", model_name = "confidence_diff")
+  
+  # concentration change 
+  fit_loo_conccentration_change <- ordbetareg(
+    get_single_factor_formula("ConcentrationChange"),
     iter = 6000,
     save_pars = save_pars(all = T),
     data = d,
     control = list(adapt_delta = 0.9)
-  ) |> add_criterion("loo", model_name = "confidence_diff")
+  ) |> add_criterion("loo", model_na9e = "concentration_change")
   
   write_rds(fit_loo_ER, "cachedModels-round2/fit_loo_ER.rds")
   write_rds(fit_loo_KL, "cachedModels-round2/fit_loo_KL.rds")
@@ -894,6 +865,7 @@ if (rerun_models) {
   write_rds(fit_loo_BF_beta, "cachedModels-round2/fit_loo_BF_beta.rds")
   write_rds(fit_loo_belief_diff, "cachedModels-round2/fit_loo_belief_diff.rds")
   write_rds(fit_loo_confidence_diff, "cachedModels-round2/fit_loo_confidence_diff.rds")
+  write_rds(fit_loo_conccentration_change, "cachedModels-round2/fit_loo_conccentration_change.rds")
   
 } else{
   fit_loo_ER <- read_rds("cachedModels-round2/fit_loo_ER.rds")
@@ -918,23 +890,25 @@ loo_compare(
  fit_loo_KL_beta, 
  fit_loo_BF_beta,
  fit_loo_belief_diff,
- fit_loo_confidence_diff
+ fit_loo_confidence_diff,
+ fit_loo_conccentration_change
 )
 ```
 
 ```{r plot-loo-results-hyp3}
-model_names <- c("belief diff.", "entropy change", "KL utility", "BF utility", 
-                 "confidence diff.", "entropy change (beta)", 
-                 "KL utility (beta)", "BF utility (beta)")
+model_names <- c("probability change", "entropy change", "KL utility", "BF utility", 
+                 "commitment change", "concentration change", "entropy change (2nd-order)", 
+                 "KL utility (2nd-order)", "BF utility (2nd-order)")
 tibble(
   model = factor(model_names, levels = rev(model_names)),
-  level = rep(c("first-order", "second-order"), each = 4),
+  level = c(rep("first-order", times = 4), rep("second-order", times = 5)),
   ELPD  = c(
     loo(fit_loo_belief_diff)$estimates['elpd_loo','Estimate'],
     loo(fit_loo_ER)$estimates['elpd_loo','Estimate'], 
     loo(fit_loo_KL)$estimates['elpd_loo','Estimate'],
     loo(fit_loo_BF)$estimates['elpd_loo','Estimate'],
     loo(fit_loo_confidence_diff)$estimates['elpd_loo','Estimate'],
+    loo(fit_loo_conccentration_change)$estimates['elpd_loo','Estimate'],
     loo(fit_loo_ER_beta)$estimates['elpd_loo','Estimate'],  
     loo(fit_loo_KL_beta)$estimates['elpd_loo','Estimate'], 
     loo(fit_loo_BF_beta)$estimates['elpd_loo','Estimate']
@@ -945,6 +919,7 @@ tibble(
     loo(fit_loo_KL)$estimates['elpd_loo','SE'],
     loo(fit_loo_BF)$estimates['elpd_loo','SE'],
     loo(fit_loo_confidence_diff)$estimates['elpd_loo','SE'],
+    loo(fit_loo_conccentration_change)$estimates['elpd_loo','SE'],
     loo(fit_loo_ER_beta)$estimates['elpd_loo','SE'],  
     loo(fit_loo_KL_beta)$estimates['elpd_loo','SE'], 
     loo(fit_loo_BF_beta)$estimates['elpd_loo','SE']
@@ -958,6 +933,7 @@ tibble(
   coord_flip() +
   xlab("") +
   ylab("expected log likelihood (LOO-CV) ")
+  
 
 ggsave("plots/comparison-single-factors.pdf", scale = 0.8, width = 8, height = 4)
 ```
@@ -987,11 +963,11 @@ We can conclude that first-order BF is the single best predictor of the relevanc
 
 # Addressing the exploratory hypotheses
 
-## Exploratory Hypothesis 2: adding `pure_second_order_belief_change` to all first-order measures 
+## Exploratory Hypothesis 2: adding `ConcentrationChange` to all first-order measures 
 
-To complement hypothesis 2, we also test whether adding another measure of higher-order uncertainty change adds predictive performance to each first-order measure of belief change. 
-So here we compare, for each measure $X$ ("entropy change", "KL", and "Bayes factor") for first-order belief change, whether adding the factor `pure_second_order_belief_change` increases the predictive performance.
-Concretely, we compare a model with single factor $X$ as a predictor to a model with predictors $X$, `pure_second_order_belief_change` and their interaction.
+To complement our confirmatory hypothesis 2, we also explore whether adding another measure of higher-order uncertainty change adds predictive performance to each first-order measure of belief change. 
+So here we compare, for each measure $X$ ("entropy change", "KL", and "Bayes factor") for first-order belief change, whether adding the factor `ConcentrationChange` increases the predictive performance.
+Concretely, we compare a model with single factor $X$ as a predictor to a model with predictors $X$, `ConcentrationChange` and their interaction.
 For ease of fitting, no random effects are included.
 
 First, run the relevant models.
@@ -1042,34 +1018,34 @@ fit_model_two_factors <- function(name, factor1, factor2) {
 # ER
 fit_expHyp2_ER <- fit_model_two_factors(
   "fit_expHyp2_ER", 
-  "entropy_change", 
+  "EntropyChange", 
   "")
 fit_expHyp2_ER_pure <- fit_model_two_factors(
   "fit_expHyp2_ER_pure", 
-  "entropy_change", 
-  "pure_second_order_belief_change")
+  "EntropyChange", 
+  "ConcentrationChange")
 
 
 #KL
 fit_expHyp2_KL <- fit_model_two_factors(
   "fit_expHyp2_KL", 
-  "kl_utility", 
+  "KLUtility", 
   "")
 fit_expHyp2_KL_pure <- fit_model_two_factors(
   "fit_expHyp2_KL_pure", 
-  "kl_utility", 
-  "pure_second_order_belief_change")
+  "KLUtility", 
+  "ConcentrationChange")
 
 
 #BF
 fit_expHyp2_BF <- fit_model_two_factors(
   "fit_expHyp2_BF", 
-  "bayes_factor_utility", 
+  "BayesFactor", 
   "")
 fit_expHyp2_BF_pure <- fit_model_two_factors(
   "fit_expHyp2_BF_pure", 
-  "bayes_factor_utility", 
-  "pure_second_order_belief_change")
+  "BayesFactor", 
+  "ConcentrationChange")
 
 
 ```
@@ -1084,7 +1060,7 @@ Then compare the relevant pairs with LOO:
 
 ```
 
-It appears that for all three measures of first-order belief change, adding `pure_second_order_belief_change` yields a substantially better model.
+It appears that for all three measures of first-order belief change, adding `ConcentrationChange` yields a substantially better model.
 
 ```{r record-results-exploratory-hypothesis-2}
 
@@ -1121,58 +1097,58 @@ Let's run the models first. For ease of fitting, no random effects are included.
 # base-level: pure
 
 fit_loo_pure_ER <- fit_model_two_factors(
-  "fit_loo_pure_ER",  "first_order_belief_change",  "beta_entropy_change")
+  "fit_loo_pure_ER",  "ProbabilityChange",  "EntropyChange_2ndOrder")
 
 fit_loo_pure_KL <- fit_model_two_factors(
-  "fit_loo_pure_KL",  "first_order_belief_change",  "beta_kl_utility")
+  "fit_loo_pure_KL",  "ProbabilityChange",  "KLUtility_2ndOrder")
 
 fit_loo_pure_BF <- fit_model_two_factors(
-  "fit_loo_pure_BF",  "first_order_belief_change",  "beta_bayes_factor_utility")
+  "fit_loo_pure_BF",  "ProbabilityChange",  "BayesFactor_2ndOrder")
 
 fit_loo_pure_pure <- fit_model_two_factors(
-  "fit_loo_pure_pure",  "first_order_belief_change",  "pure_second_order_belief_change")
+  "fit_loo_pure_pure",  "ProbabilityChange",  "ConcentrationChange")
 
 # base-level: ER
 
 fit_loo_ER_ER <- fit_model_two_factors(
-  "fit_loo_ER_ER",  "entropy_change",  "beta_entropy_change")
+  "fit_loo_ER_ER",  "EntropyChange",  "EntropyChange_2ndOrder")
 
 fit_loo_ER_KL <- fit_model_two_factors(
-  "fit_loo_ER_KL",  "entropy_change",  "beta_kl_utility")
+  "fit_loo_ER_KL",  "EntropyChange",  "KLUtility_2ndOrder")
 
 fit_loo_ER_BF <- fit_model_two_factors(
-  "fit_loo_ER_BF",  "entropy_change",  "beta_bayes_factor_utility")
+  "fit_loo_ER_BF",  "EntropyChange",  "BayesFactor_2ndOrder")
 
 fit_loo_ER_pure <- fit_model_two_factors(
-  "fit_loo_ER_pure",  "entropy_change",  "pure_second_order_belief_change")
+  "fit_loo_ER_pure",  "EntropyChange",  "ConcentrationChange")
 
 # base-level: KL
 
 fit_loo_KL_ER <- fit_model_two_factors(
-  "fit_loo_KL_ER",  "kl_utility",  "beta_entropy_change")
+  "fit_loo_KL_ER",  "KLUtility",  "EntropyChange_2ndOrder")
 
 fit_loo_KL_KL <- fit_model_two_factors(
-  "fit_loo_KL_KL",  "kl_utility",  "beta_kl_utility")
+  "fit_loo_KL_KL",  "KLUtility",  "KLUtility_2ndOrder")
 
 fit_loo_KL_BF <- fit_model_two_factors(
-  "fit_loo_KL_BF",  "kl_utility",  "beta_bayes_factor_utility")
+  "fit_loo_KL_BF",  "KLUtility",  "BayesFactor_2ndOrder")
 
 fit_loo_KL_pure <- fit_model_two_factors(
-  "fit_loo_KL_pure",  "kl_utility",  "pure_second_order_belief_change")
+  "fit_loo_KL_pure",  "KLUtility",  "ConcentrationChange")
 
 # base-level: BF
 
 fit_loo_BF_ER <- fit_model_two_factors(
-  "fit_loo_BF_ER",  "bayes_factor_utility",  "beta_entropy_change")
+  "fit_loo_BF_ER",  "BayesFactor",  "EntropyChange_2ndOrder")
 
 fit_loo_BF_KL <- fit_model_two_factors(
-  "fit_loo_BF_KL",  "bayes_factor_utility",  "beta_kl_utility")
+  "fit_loo_BF_KL",  "BayesFactor",  "KLUtility_2ndOrder")
 
 fit_loo_BF_BF <- fit_model_two_factors(
-  "fit_loo_BF_BF",  "bayes_factor_utility",  "beta_bayes_factor_utility")
+  "fit_loo_BF_BF",  "BayesFactor",  "BayesFactor_2ndOrder")
 
 fit_loo_BF_pure <- fit_model_two_factors(
-  "fit_loo_BF_pure",  "bayes_factor_utility",  "pure_second_order_belief_change")
+  "fit_loo_BF_pure",  "BayesFactor",  "ConcentrationChange")
 
 ```
 
@@ -1204,28 +1180,11 @@ Plot results.
 ```{r plot-loo-results-exp-hyp3}
 
 model_names <- c(
- "pure + ER   ", "pure + KL   ", "pure + BF   ", "pure + pure ",
- "  ER + ER   ", "  ER + KL   ", "  ER + BF   ", "  ER + pure ",
- "  KL + ER   ", "  KL + KL   ", "  KL + BF   ", "  KL + pure ",
- "  BF + ER   ", "  BF + KL   ", "  BF + BF   ", "  BF + pure "
+ "ProbCh + ER     ", "ProbCh + KL     ", "ProbCh + BF     ", "ProbCh + ConcCh ",
+ "    ER + ER     ", "    ER + KL     ", "    ER + BF     ", "    ER + ConcCh ",
+ "    KL + ER     ", "    KL + KL     ", "    KL + BF     ", "    KL + ConcCh ",
+ "    BF + ER     ", "    BF + KL     ", "    BF + BF     ", "    BF + ConcCh "
   )
-
-
-
-# model_names <- c(
-#   "1st: ER  2nd: ER  ", 
-#   "1st: ER  2nd: KL  ", 
-#   "1st: ER  2nd: BF  ", 
-#   "1st: ER  2nd: pure",
-#   "1st: KL  2nd: ER  ", 
-#   "1st: KL  2nd: KL  ", 
-#   "1st: KL  2nd: BF  ", 
-#   "1st: KL  2nd: pure",
-#   "1st: BF  2nd: ER  ", 
-#   "1st: BF  2nd: KL  ", 
-#   "1st: BF  2nd: BF  ", 
-#   "1st: BF  2nd: pure"
-#   )
 
 tibble(
   model = factor(model_names, levels = rev(model_names)),
@@ -1339,7 +1298,7 @@ And now we can plot delta confidence and delta probability as x and y
 TODO: try removing non-answers from these (and other) plots
 ```{r}
 d |> 
-    ggplot(aes(x = first_order_belief_change, y = second_order_belief_change, color = relevance_sliderResponse))  +
+    ggplot(aes(x = ProbabilityChange, y = CommitmentChange, color = relevance_sliderResponse))  +
     geom_jitter(width = 0.0, height = 0.3, size = 3, alpha = 0.4) + 
     scale_color_viridis()
 ```
@@ -1347,7 +1306,7 @@ d |>
 
 ```{r}
 d |> 
-    ggplot(aes(x = first_order_belief_change, y = second_order_belief_change, color = relevance_sliderResponse))  +
+    ggplot(aes(x = ProbabilityChange, y = CommitmentChange, color = relevance_sliderResponse))  +
     geom_jitter(width = 0.01, height = 0.3, size = 3, alpha = 0.4) + 
     scale_color_viridis() + 
     coord_cartesian(xlim = c(-0.01, 0.15), ylim = c(-0.3, 4))
