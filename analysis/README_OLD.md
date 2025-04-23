@@ -20,14 +20,13 @@ The main data analysis is in `data-analysis-main.qmd`.
 
 The raw experimental data needs to be processed before undergoing preregistered and qualitative analyses.
 This process is already done (see `results/round_2.0/results_preprocessed.csv`),
-but can be replicated as follows:
+but the can be replicated as follows:
 
 ### Step 1: Identify the location of the results file:
 
 Set your project root before running the following.
 
 ```bash
-PROJECT_ROOT=/Users/alexwarstadt/Workspace/relevance-of-answers
 RESULTS_DIR=$PROJECT_ROOT/results/round_2.0
 cd $PROJECT_ROOT/analysis
 ```
@@ -68,32 +67,25 @@ python3 widen_dataframe.py --input $RESULTS_DIR/results_filtered.tmp
 ```
 
 
-### Step 4: Fitting parameters
+### Step 4: Fitting beta distributions
 
 Now we want to estimate the higher-order belief states of participants by fitting beta distributions. 
-In other words, we need to find the `\alpha` and `\beta` parameters for the beta distributions for each trial judgment. 
+In other words, we need to find the \alpha and \beta parameters for the beta distributions for each trial judgment. 
 To do this, we use the mode/concentration parameterization of the beta distribution, 
-which can be used to give the typical `\alpha` and `\beta` parameterization.
+which can be used to give the typical \alpha and \beta parameterization.
 
-For the **mode**, we simply use the probability judgment.
+For the **mode**, we simply us the probability judgment.
 
 For the **concentration** `K`, we have to find some mapping from the confidence likert judgments `c`. 
 To do this, we assume a 2-parameter linking function: `K = a * b^c`, which we selected heuristically. 
-We use sequential least squares to find the values of `a` and `b` that maximize the mean squared error between
+We use sequential least squares to find the values of `a` and `b` that maximize the Pearson correlation between
 the `beta-KL` measure and the relevance judgments.
-Since we will also apply the scaling function `g` to map the results to the interval [0,1], 
-we want to jointly optimize `a` and `b` along with that parameter confusingly also named `g`.
 
 ```bash
-python3 fit_beta_and_g_fo.py \
+python3 fit_beta.py \
     --training $PROJECT_ROOT/results/round_1.0/results_filtered.tmp \
-    --input $RESULTS_DIR/results_filtered.tmp \
-    --output $RESULTS_DIR/results_beta.tmp \
-    --optimize_joint separate \
-    --obj mse \
-    --first_order 
+    --input $RESULTS_DIR/results_filtered.tmp
 ```
-
 
 ### Step 5: Computing metrics
 
@@ -114,9 +106,7 @@ A complete list of predictors is as follows:
 ```bash
 python3 compute_metrics.py \
     --input $RESULTS_DIR/results_beta.tmp \
-    --params $RESULTS_DIR/results_beta_params.csv \
-    --output $RESULTS_DIR/results_metrics.tmp \
-    --scale
+    --output $RESULTS_DIR/results_metrics.tmp
 ```
 
 ### Step 6: Clean up
@@ -158,3 +148,39 @@ python3 fit_beta.py \
     --optimize_joint grid \
     --output $PROJECT_ROOT/plotting/plots/fit_beta_heatmaps.pdf
 ```
+
+## Appendix 3: Scaling metrics
+
+You may want to scale all metrics to lie between [0, 1]. If so:
+
+```bash
+python3 compute_metrics.py \
+    --input $RESULTS_DIR/results_beta.tmp \
+    --train $PROJECT_ROOT/results/round_1.0/results_beta.tmp \
+    --output $RESULTS_DIR/results_metrics.tmp \
+    --joint both \
+    --obj pearson \
+    --scale
+ ```
+
+You should update `--joint both` `--joint separate` or `--joint joint` 
+depending on how beta params were fit (see Appendix 2).
+
+You can also update `--obj pearson`, `--obj mse`, `--obj pearson_reg` among other options.
+
+
+## Appendix 4: Jointly optimize beta params and scaling param g separately for each metric
+
+First, optimize the parameters.
+```bash
+python3 fit_beta_and_g_fo.py \
+    --training $PROJECT_ROOT/results/round_1.0/results_filtered.tmp
+    --input $RESULTS_DIR/results_filtered.tmp
+    --output $RESULTS_DIR/results_beta.tmp
+    --optimize_joint both
+    --obj mse
+    --first_order 
+```
+
+Second, compute metrics:
+
