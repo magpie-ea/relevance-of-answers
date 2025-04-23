@@ -1,4 +1,4 @@
 comparison,measure,posterior,HDI (low),HDI (high)
-pos vs neg polarity,belief change,0.442,-0.07614944444444444,0.06816171444444447
-low vs high certainty,belief change,0.9995,0.0687648333333333,0.16798696666666668
-high certain vs exh,belief change,1,0.07871833333333345,0.2021895
+pos vs neg polarity,belief change,0.45525,-0.08102126666666673,0.06659401111111113
+low vs high certainty,belief change,0.99975,0.0658995,0.16813333333333325
+high certain vs exh,belief change,0.999,0.06915666666666681,0.2003228333333333

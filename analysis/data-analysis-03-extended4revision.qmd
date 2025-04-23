@@ -71,7 +71,7 @@ Lambert_test <- function(loo_comp) {
 }
 
 ##################################################
-rl_file <- "R_data_4_TeX/myvars-reproduce.csv"
+rl_file <- "R_data_4_TeX/myvars-extended4revision.csv"
 myvars = list()
 # add with: myvars[name] = value
 ```
@@ -849,7 +849,7 @@ if (rerun_models) {
   ) |> add_criterion("loo", model_name = "confidence_diff")
   
   # concentration change 
-  fit_loo_conccentration_change <- ordbetareg(
+  fit_loo_concentration_change <- ordbetareg(
     get_single_factor_formula("ConcentrationChange"),
     iter = 6000,
     save_pars = save_pars(all = T),
@@ -865,7 +865,7 @@ if (rerun_models) {
   write_rds(fit_loo_BF_beta, "cachedModels-round2/fit_loo_BF_beta.rds")
   write_rds(fit_loo_belief_diff, "cachedModels-round2/fit_loo_belief_diff.rds")
   write_rds(fit_loo_confidence_diff, "cachedModels-round2/fit_loo_confidence_diff.rds")
-  write_rds(fit_loo_conccentration_change, "cachedModels-round2/fit_loo_conccentration_change.rds")
+  write_rds(fit_loo_concentration_change, "cachedModels-round2/fit_loo_conccentration_change.rds")
   
 } else{
   fit_loo_ER <- read_rds("cachedModels-round2/fit_loo_ER.rds")
@@ -891,7 +891,7 @@ loo_compare(
  fit_loo_BF_beta,
  fit_loo_belief_diff,
  fit_loo_confidence_diff,
- fit_loo_conccentration_change
+ fit_loo_concentration_change
 )
 ```
 
@@ -908,7 +908,7 @@ tibble(
     loo(fit_loo_KL)$estimates['elpd_loo','Estimate'],
     loo(fit_loo_BF)$estimates['elpd_loo','Estimate'],
     loo(fit_loo_confidence_diff)$estimates['elpd_loo','Estimate'],
-    loo(fit_loo_conccentration_change)$estimates['elpd_loo','Estimate'],
+    loo(fit_loo_concentration_change)$estimates['elpd_loo','Estimate'],
     loo(fit_loo_ER_beta)$estimates['elpd_loo','Estimate'],  
     loo(fit_loo_KL_beta)$estimates['elpd_loo','Estimate'], 
     loo(fit_loo_BF_beta)$estimates['elpd_loo','Estimate']
@@ -919,7 +919,7 @@ tibble(
     loo(fit_loo_KL)$estimates['elpd_loo','SE'],
     loo(fit_loo_BF)$estimates['elpd_loo','SE'],
     loo(fit_loo_confidence_diff)$estimates['elpd_loo','SE'],
-    loo(fit_loo_conccentration_change)$estimates['elpd_loo','SE'],
+    loo(fit_loo_concentration_change)$estimates['elpd_loo','SE'],
     loo(fit_loo_ER_beta)$estimates['elpd_loo','SE'],  
     loo(fit_loo_KL_beta)$estimates['elpd_loo','SE'], 
     loo(fit_loo_BF_beta)$estimates['elpd_loo','SE']
