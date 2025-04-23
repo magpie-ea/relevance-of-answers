@@ -1,0 +1,316 @@
+---
+title: "Quantitative notions of relevance: Data analysis for 'Relevance Only'"
+author: "Alex Warstadt, Omar Aghar & Michael Franke"
+format: 
+  html:
+    code-fold: true
+    self-contained: true
+    highlight-style: zenburn
+execute:
+  error: false
+  warning: false
+  message: false
+  cache: true
+editor:
+  markdown:
+    wrap: sentence
+---
+
+First load required packages and set some global parameters.
+
+```{r loads-preps}
+#| echo: true
+#| error: false
+#| warning: false
+#| message: false
+
+library(tidyverse)
+library(brms)
+library(tidyboot)
+library(tidyjson)
+library(patchwork)
+library(GGally)
+library(cowplot)
+library(BayesFactor)
+library(aida)   # custom helpers: https://github.com/michael-franke/aida-package
+library(faintr) # custom helpers: https://michael-franke.github.io/faintr/index.html
+library(cspplot) # custom styles: https://github.com/CogSciPrag/cspplot
+library(ordbetareg) # for ordered beta-regression
+library(cmdstanr)
+
+##################################################
+
+# these options help Stan run faster
+options(mc.cores = parallel::detectCores(),
+        brms.backend = "cmdstanr")
+
+# use the CSP-theme for plotting
+theme_set(theme_csp())
+
+# global color scheme from CSP
+project_colors = cspplot::list_colors() |> pull(hex)
+
+# setting theme colors globally
+scale_colour_discrete <- function(...) {
+  scale_colour_manual(..., values = project_colors)
+}
+scale_fill_discrete <- function(...) {
+  scale_fill_manual(..., values = project_colors)
+}
+
+##################################################
+
+rerun_models <- TRUE
+
+Lambert_test <- function(loo_comp) {
+  1 - pnorm(-loo_comp[2,1], loo_comp[2,2])
+}
+
+##################################################
+
+rl_file <- "R_data_4_TeX/myvars-relevanceOnly.csv"
+myvars = list()
+# add with: myvars[name] = value
+```
+
+# This block is not necessary for all, but may be necessary for some installations of `faintr`
+```{r}
+source('xx-faintr_functions.R')
+source('xx-faintr_helpers.R')
+```
+
+# Observation: bad performance in relevance-only study
+
+In previous analyses we strictly ruled out participants with attention and reasoning scores not equal to one. 
+This is severe for the new data, as it would reduce the number of participants from 151 to just 56.
+
+I'm here including an analysis for slightly less strict filtering, allowing also participants with `reasoning_score == 0.5` to be included in the analysis.
+Without this, the final model comparison in terms of `loo` is non-significant, which is then probably due to the small sample size for the 'relevance-only' experiment.
+
+```{r plotting-score-distribution}
+
+# inspect the distribution of reasoning & attention scores  
+d_RelOnly_local <- read_csv("../results/relevance-only/results_preprocessed.csv")
+d_RelOnly_local |> pull(attention_score) |> hist()
+d_RelOnly_local |> pull(reasoning_score) |> hist()
+```
+
+
+# Read & massage the data
+
+Load raw data and preprocess it.
+
+```{r read-data}
+#| results: hide
+#| warning: false
+#| message: false
+
+# data from the full experiment
+d_FullExp <- read_csv("../results/round_2.0/results_preprocessed.csv") |> 
+  # drop column with numbers
+  select(-`...1`) |> 
+  # data exclusion based on attention & reasoning score (279 before | 235 after) 
+  filter(attention_score == 1) |> 
+  filter(reasoning_score >= 0.5) |> 
+  # set "non-answers" to AnswerPolarity "positive"
+  mutate(AnswerPolarity = ifelse(
+    AnswerCertainty == "non_answer", 
+    "positive", 
+    AnswerPolarity)) |> 
+  # casting into factor
+  mutate(
+    group = factor(group, levels = c("relevant", "helpful")),
+    ContextType = factor(ContextType, 
+                         levels = c("negative", "neutral", "positive")),
+    AnswerPolarity = factor(AnswerPolarity, 
+                            levels = c("positive", "negative")),
+    AnswerCertainty = factor(AnswerCertainty, 
+                             levels = c("non_answer", "low_certainty", 
+                                        "high_certainty", "exhaustive"))
+  ) |> 
+  rename(sliderResponse = relevance_sliderResponse) |> 
+  mutate(ExperimentType = "FullExp") |>
+  select(submission_id, ExperimentType, group, StimID,
+         ContextType, AnswerPolarity, AnswerCertainty, sliderResponse)
+
+# data from the relevance only replication
+d_RelOnly <- read_csv("../results/relevance-only/results_preprocessed.csv") |> 
+  # drop column with numbers
+  select(-`...1`) |> 
+  # data exclusion based on attention & reasoning score (151 before | 56 after)
+  filter(attention_score == 1) |> 
+  filter(reasoning_score >= 0.5) |> 
+  # set "non-answers" to AnswerPolarity "positive"
+  mutate(AnswerPolarity = ifelse(
+    AnswerCertainty == "non_answer", 
+    "positive", 
+    AnswerPolarity)) |> 
+  # casting into factor
+  mutate(
+    group = factor(group, levels = c("relevant", "helpful")),
+    ContextType = factor(ContextType, 
+                         levels = c("negative", "neutral", "positive")),
+    AnswerPolarity = factor(AnswerPolarity, 
+                            levels = c("positive", "negative")),
+    AnswerCertainty = factor(AnswerCertainty, 
+                             levels = c("non_answer", "low_certainty", 
+                                        "high_certainty", "exhaustive"))
+  ) |> 
+  mutate(ExperimentType = "RelOnly") |>
+  select(submission_id, ExperimentType, group, StimID,
+         ContextType, AnswerPolarity, AnswerCertainty, sliderResponse)
+
+# combined data from both experiments
+d_AllData <- bind_rows(d_FullExp, d_RelOnly)
+
+```
+
+# Ploting the distribution of relevance ratings
+
+Below are plots for the density distribution of slider ratings for the positive vs. negative answer types seperately (so we can directly compare the distribution in each experiment).
+
+```{r plots-relevance-ratings}
+#| results: hide
+#| warning: false
+#| message: false
+
+plot_positive <- d_AllData |>
+  filter(AnswerPolarity == "positive") |>
+  mutate(AnswerCertainty = case_when(AnswerCertainty == "low_certainty" ~ "low",
+                                     AnswerCertainty == "high_certainty" ~ "high",
+                                     AnswerCertainty == "non_answer" ~ "non-answer",
+                                     TRUE ~ "exhaustive",
+  ) |> factor(level = c("non-answer", "low", "high","exhaustive"))) |>
+  ggplot(aes(x = sliderResponse, color = ExperimentType, fill = ExperimentType)) +
+  facet_grid(AnswerCertainty ~ ContextType , scales = "free") +
+  # histogram with dodged bars
+  geom_density(alpha = 0.2, linewidth = 1.5) +
+  xlab("relevance rating") + ylab("") +
+  ggtitle("AnswerPolarity: positive")
+
+plot_negative <- d_AllData |>
+  filter(AnswerPolarity == "negative") |>
+  mutate(AnswerCertainty = case_when(AnswerCertainty == "low_certainty" ~ "low",
+                                     AnswerCertainty == "high_certainty" ~ "high",
+                                     AnswerCertainty == "non_answer" ~ "non-answer",
+                                     TRUE ~ "exhaustive",
+  ) |> factor(level = c("non-answer", "low", "high","exhaustive"))) |>
+  ggplot(aes(x = sliderResponse, color = ExperimentType, fill = ExperimentType)) +
+  facet_grid(AnswerCertainty ~ ContextType, scales = "free") +
+  geom_density(alpha = 0.2, linewidth = 1.5) +
+  xlab("relevance rating") + ylab("") +
+  ggtitle("AnswerPolarity: negative")
+
+
+plot_positive / plot_negative
+```
+
+# Model fitting
+
+We fit two models, one with and one without the factor `ExperimentType`. 
+When the factor is included, it is included together with all of its interactions.
+
+There's a flag for function `fit_model` to refit the model or use a locally cached version.
+Each model fit may take up to 30 minutes or more. 
+
+```{r model-fitting}
+#| results: hide
+#| warning: false
+#| message: false
+
+## fit ordinal beta-regression models ----
+
+fit_model <- function(d, model_name, refit = T, withExpVariable = F) {
+  
+  # brms formula: whether to use 'ExperimentType' as predictor or not
+  if (withExpVariable) {
+    formula = brms::brmsformula(
+      sliderResponse ~ ContextType * AnswerCertainty * AnswerPolarity * ExperimentType +
+        (1 + ContextType + AnswerCertainty + AnswerPolarity || StimID) +
+        (1 + ContextType + AnswerCertainty + AnswerPolarity || submission_id)
+    )  
+  } else {
+    formula = brms::brmsformula(
+      sliderResponse ~ ContextType * AnswerCertainty * AnswerPolarity + 
+        (1 + ContextType + AnswerCertainty + AnswerPolarity || StimID) +
+        (1 + ContextType + AnswerCertainty + AnswerPolarity || submission_id)
+    )  
+  }
+  
+  # model name for saving
+  model_name_expanded <- paste0("cachedModels-round2/exploration-RelOnly-",model_name,".Rds")
+  
+  # fitting or retrieving cached models
+  if (refit) {
+    fit <- ordbetareg::ordbetareg(
+      formula = formula,
+      data = d,
+      coef_prior_SD = 5,
+      save_pars = save_pars(all=TRUE)
+    )
+    saveRDS(fit, model_name_expanded)
+  } else{
+    fit <- readRDS(model_name_expanded)
+  }
+  return(fit)
+}
+
+fit_AllData_smpl <- fit_model(d_AllData, model_name = "AllData_smpl", refit = F, withExpVariable = F)
+fit_AllData_cmpl <- fit_model(d_AllData, model_name = "AllData_cmpl", refit = F, withExpVariable = T)
+
+```
+
+
+# Coefficient-based testing
+
+To address the question of differences between experiment, we can test whether the main effect of `ExperimentType` under deviation coding of the categorical factors (sum coding).
+
+It turns out that the posterior probability of a main effect of `ExperimentType` is credibly different from zero, suggesting a difference between experiments as such.
+
+```{r}
+
+faintr::compare_groups(
+  fit = fit_AllData_cmpl,
+  higher = ExperimentType == "FullExp")
+
+```
+
+NB: We could also compare the two experiments for each triple of explanatory factors `AnswerPolarity`, `AnswerCertainty` and `ContextType`.
+But this may be overkill.
+
+
+# Model comparison
+
+We use `loo`-based model comparison to test whether the factor `ExperimentType` is relevant for leave-one-out posterior predictive model checking.
+If the difference between posterior predictive accuracy is significant, we may interpret this as saying that the distribution of relevance judgements is different between experiments.
+
+```{r loo-based-model-comparison}
+
+rerun_loo <- F
+
+if (rerun_loo) {
+  loo_comp <- loo::loo_compare(
+    list("w/o_ExpVariable" = loo(fit_AllData_smpl),
+         # moment_match = TRUE,
+         # reloo = TRUE),
+         "w/_ExpVariable" = loo(fit_AllData_cmpl)))
+  saveRDS(loo_comp, "cachedModels-round2/exploration-RelOnly-loo_comp_groups.Rds")
+} else {
+  loo_comp = read_rds("cachedModels-round2/exploration-RelOnly-loo_comp_groups.Rds")
+}
+loo_comp
+Lambert_test(loo_comp)
+```
+
+Indeed, when using a more lenient exclusion criterion, we find a significant difference, so lending credence to the claim that relevance judgements were different between experiments. 
+
+
+# Saving variables for LaTeX
+
+```{r}
+#| include: false
+myvars = as_tibble(myvars)
+readr::write_csv(myvars, file = rl_file, col_names = T)
+```
+
+>>>>>>> 8244c7c2d29bb608f7da8df203c06dc3655ae1a0
