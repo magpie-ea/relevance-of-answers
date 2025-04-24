@@ -876,6 +876,7 @@ if (rerun_models) {
   fit_loo_BF_beta <- read_rds("cachedModels-round2/fit_loo_BF_beta.rds")
   fit_loo_belief_diff <- read_rds("cachedModels-round2/fit_loo_belief_diff.rds")
   fit_loo_confidence_diff <- read_rds("cachedModels-round2/fit_loo_confidence_diff.rds")
+  fit_loo_concentration_change <- read_rds("cachedModels-round2/fit_loo_conccentration_change.rds")
 }
 ```
 
@@ -941,7 +942,7 @@ ggsave("plots/comparison-single-factors.pdf", scale = 0.8, width = 8, height = 4
 Testing whether there is a substantial difference between the two best models:
 
 ```{r lambert-test-best-models-hyp3}
-loo_comp_hyp3 <- loo_compare(fit_loo_BF, fit_loo_BF_beta)
+loo_comp_hyp3 <- loo_compare(fit_loo_BF, fit_loo_KL_beta)
 loo_comp_hyp3
 Lambert_test(loo_comp_hyp3)
 ```
@@ -950,9 +951,9 @@ Lambert_test(loo_comp_hyp3)
 
 ```{r results-recording-hyp3}
 # Comparing the best model to the second best model
-myvars["hyp3BFvsBFBetaLOODiff"] <- -1* (loo_comp_hyp3[2,1] |> round(3))
-myvars["hyp3BFvsBFBetaLOOSE"] <- loo_comp_hyp3[2,2] |> round(3)
-myvars["hyp3BFvsBFBetaPValue"] <- Lambert_test(loo_comp_hyp3) |> round(3)
+myvars["hyp3BFvsKLBetaLOODiff"] <- -1* (loo_comp_hyp3[2,1] |> round(3))
+myvars["hyp3BFvsKLBetaLOOSE"] <- loo_comp_hyp3[2,2] |> round(3)
+myvars["hyp3BFvsKLBetaPValue"] <- Lambert_test(loo_comp_hyp3) |> round(3)
 
 ```
 
