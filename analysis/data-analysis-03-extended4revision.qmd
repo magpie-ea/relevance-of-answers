@@ -1240,7 +1240,7 @@ ggsave("plots/comparison-exploratory-hyp3.pdf", scale = 1, width = 8, height = 4
 
 ```{r record-results-expl-hyp-3}
 
-(loo_comp_explHyp3 <- loo_compare(loo(fit_loo_BF_BF), loo(fit_loo_BF_pure)))
+(loo_comp_explHyp3 <- loo_compare(loo(fit_loo_BF_BF), loo(fit_loo_BF_ER)))
 
 myvars["explHyp3LOODiff"] <- -1* (loo_comp_explHyp3[2,1] |> round(3))
 myvars["explHyp3LOOSE"] <- loo_comp_explHyp3[2,2] |> round(3)
