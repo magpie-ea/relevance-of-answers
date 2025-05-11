@@ -84,7 +84,7 @@ source('xx-faintr_helpers.R')
 In previous analyses we strictly ruled out participants with attention and reasoning scores not equal to one. 
 This is severe for the new data, as it would reduce the number of participants from 151 to just 56.
 
-I'm here including an analysis for slightly less strict filtering, allowing also participants with `reasoning_score == 0.5` to be included in the analysis.
+We are therefore reporting an analysis for slightly less strict filtering, allowing also participants with `reasoning_score == 0.5` to be included in the analysis.
 Without this, the final model comparison in terms of `loo` is non-significant, which is then probably due to the small sample size for the 'relevance-only' experiment.
 
 ```{r plotting-score-distribution}
@@ -93,6 +93,12 @@ Without this, the final model comparison in terms of `loo` is non-significant, w
 d_RelOnly_local <- read_csv("../results/relevance-only/results_preprocessed.csv")
 d_RelOnly_local |> pull(attention_score) |> hist()
 d_RelOnly_local |> pull(reasoning_score) |> hist()
+```
+
+Total number of participants in the 'relevance-only' experiment:
+
+```{r}
+d_RelOnly_local |> summarize(participants = n()/10)
 ```
 
 
@@ -165,9 +171,17 @@ d_AllData <- bind_rows(d_FullExp, d_RelOnly)
 
 ```
 
+Number of participants after data exclusion:
+
+```{r}
+d_AllData |> group_by(ExperimentType) |> 
+  summarize(participants = n()/10)
+```
+
+
 # Ploting the distribution of relevance ratings
 
-Below are plots for the density distribution of slider ratings for the positive vs. negative answer types seperately (so we can directly compare the distribution in each experiment).
+Below are plots for the density distribution of slider ratings for the positive vs. negative answer types separately (so we can directly compare the distribution in each experiment).
 
 ```{r plots-relevance-ratings}
 #| results: hide
@@ -185,8 +199,7 @@ plot_positive <- d_AllData |>
   facet_grid(AnswerCertainty ~ ContextType , scales = "free") +
   # histogram with dodged bars
   geom_density(alpha = 0.2, linewidth = 1.5) +
-  xlab("relevance rating") + ylab("") +
-  ggtitle("AnswerPolarity: positive")
+  xlab("relevance rating") + ylab("") 
 
 plot_negative <- d_AllData |>
   filter(AnswerPolarity == "negative") |>
@@ -198,11 +211,17 @@ plot_negative <- d_AllData |>
   ggplot(aes(x = sliderResponse, color = ExperimentType, fill = ExperimentType)) +
   facet_grid(AnswerCertainty ~ ContextType, scales = "free") +
   geom_density(alpha = 0.2, linewidth = 1.5) +
-  xlab("relevance rating") + ylab("") +
-  ggtitle("AnswerPolarity: negative")
+  xlab("relevance rating") + ylab("") 
 
 
 plot_positive / plot_negative
+
+ggsave(plot = plot_positive,
+       filename = "plots/relevance-ratings-RelOnlyExp-positiveAnswers.pdf", 
+       scale=1.2, width = 10, height=6)
+ggsave(plot = plot_negative,
+       filename = "plots/relevance-ratings-RelOnlyExp-negativeAnswers.pdf", 
+       scale=1.2, width = 10, height=5)
 ```
 
 # Model fitting
@@ -238,7 +257,7 @@ fit_model <- function(d, model_name, refit = T, withExpVariable = F) {
   }
   
   # model name for saving
-  model_name_expanded <- paste0("cachedModels-round2/exploration-RelOnly-",model_name,".Rds")
+  model_name_expanded <- paste0("cachedModels-round2/fit-RelOnly-",model_name,".Rds")
   
   # fitting or retrieving cached models
   if (refit) {
@@ -290,19 +309,17 @@ rerun_loo <- F
 
 if (rerun_loo) {
   loo_comp <- loo::loo_compare(
-    list("w/o_ExpVariable" = loo(fit_AllData_smpl),
-         # moment_match = TRUE,
-         # reloo = TRUE),
+    list("w/o_ExpVariable" = loo(fit_AllData_smpl), 
          "w/_ExpVariable" = loo(fit_AllData_cmpl)))
-  saveRDS(loo_comp, "cachedModels-round2/exploration-RelOnly-loo_comp_groups.Rds")
+  saveRDS(loo_comp, "cachedModels-round2/fit-RelOnly-loo_comp_groups.Rds")
 } else {
-  loo_comp = read_rds("cachedModels-round2/exploration-RelOnly-loo_comp_groups.Rds")
+  loo_comp = read_rds("cachedModels-round2/fit-RelOnly-loo_comp_groups.Rds")
 }
 loo_comp
 Lambert_test(loo_comp)
 ```
 
-Indeed, when using a more lenient exclusion criterion, we find a significant difference, so lending credence to the claim that relevance judgements were different between experiments. 
+Indeed, when using a more lenient exclusion criterion, we find a significant difference, so lending credence to the claim that relevance judgments were different between experiments. 
 
 
 # Saving variables for LaTeX
@@ -313,4 +330,3 @@ myvars = as_tibble(myvars)
 readr::write_csv(myvars, file = rl_file, col_names = T)
 ```
 
->>>>>>> 8244c7c2d29bb608f7da8df203c06dc3655ae1a0
