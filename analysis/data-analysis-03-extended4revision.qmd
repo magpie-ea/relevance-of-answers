@@ -189,16 +189,32 @@ Then we apply our exclusion criteria:
 initial_nr_participants <- d |> pull(submission_id) |> unique() |> length()
 
 d <- d |> 
-  filter(attention_score == 1) |> 
-  filter(reasoning_score > 0.5) |> 
+  filter(attention_score == 1)
+included_nr_participants <- d |> pull(submission_id) |> unique() |> length()
+excluded_nr_attention <- initial_nr_participants - included_nr_participants
+
+d <- d |> 
+  filter(reasoning_score > 0.5) 
+included_nr_participants <- d |> pull(submission_id) |> unique() |> length()
+excluded_nr_reasoning <- initial_nr_participants - included_nr_participants - excluded_nr_attention
+
+d <- d |> 
   filter(task_sensitivity > 0.75)
+included_nr_participants <- d |> pull(submission_id) |> unique() |> length()
+excluded_nr_sensitivity <- initial_nr_participants - included_nr_participants - 
+  excluded_nr_attention - excluded_nr_reasoning
+
 
 # included participants
 included_nr_participants <- d |> pull(submission_id) |> unique() |> length()
 
 message("Initial number of participants: ", initial_nr_participants, 
-        "\nIncluded after cleaning: ", included_nr_participants,
-        "\nExcluded: ", initial_nr_participants - included_nr_participants)
+        "\nIncluded after cleaning (total): ", included_nr_participants,
+        "\nExcluded (total): ", initial_nr_participants - included_nr_participants,
+        "\nExcluded (due to attention): ", excluded_nr_attention,
+        "\nExcluded (due to reasoning): ", excluded_nr_reasoning,
+        "\nExcluded (due to sensitivity): ", excluded_nr_sensitivity
+        )
 ```
 
 ```{r record-vars-nr-participants}
@@ -206,6 +222,9 @@ message("Initial number of participants: ", initial_nr_participants,
 myvars["nr_participants"] <- initial_nr_participants
 myvars["nr_participants_excluded"] <- initial_nr_participants - included_nr_participants
 myvars["nr_participants_included"] <- included_nr_participants
+myvars["nr_participants_excluded_attention"] <- excluded_nr_attention
+myvars["nr_participants_excluded_reasoning"] <- excluded_nr_reasoning
+myvars["nr_participants_excluded_sensitivity"] <- excluded_nr_sensitivity
 ```
 
 
