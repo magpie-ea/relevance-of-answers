@@ -10,6 +10,7 @@ Other (related) files:
 - `data-analysis-01a-main` - original exploratory DA based on pilot studies 
 - `data-analysis_02-RelOnly` - analysis of follow-up experiment (only relevance judgements) 
 - `data-analysis_03-extended4revision` - further exploration of additional measures or link functions
+- `data-analysis-04-CrossExp-byItem-analyes.r` - checking if (ordinal) results from model comparison carry over to the new 'relevance-only' data set 
 
 ## Qualitative analysis
 The qualitative analysis is performed in `qualitative_analysis.ipynb`.

@@ -919,7 +919,7 @@ loo_compare(
 model_names <- c("probability change", "entropy change", "KL utility", "BF utility", 
                  "commitment change", "concentration change", "entropy change (2nd-order)", 
                  "KL utility (2nd-order)", "BF utility (2nd-order)")
-tibble(
+looComp_data <- tibble(
   model = factor(model_names, levels = rev(model_names)),
   level = c(rep("first-order", times = 4), rep("second-order", times = 5)),
   ELPD  = c(
@@ -946,7 +946,11 @@ tibble(
   ),
   lower = ELPD - SE,
   upper = ELPD + SE
-) |> 
+) 
+
+write_csv(looComp_data, file = "R_data_4_TeX/Hyp3_LOO-comparison_results.csv")
+
+looComp_data |> 
   ggplot(aes( x = model , y = ELPD, color = level)) +
   geom_linerange(aes(min = lower, max = upper), size = 0.5) +
   geom_point(aes(shape = level), size = 2.5) +
