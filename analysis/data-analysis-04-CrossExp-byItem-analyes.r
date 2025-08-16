@@ -284,64 +284,144 @@ looComp_data |>
   geom_point() +
   geom_text(nudge_y = -0.005, size = 3)
 
+# function to plot rankings for different model comparison methods
+plot_rankings <- function(x, y, x_label="", y_label="", nudges_x = NULL, nudges_y = NULL) {
+  
+  # nudges for moving labels away from points
+  if (is.null(nudges_x)) {nudges_x <- rep(0, length(x))}
+  if (is.null(nudges_y)) {nudges_y <- rep(0, length(y))}
+  
+  # Compute ranks (higher is better)
+  rank1 <- rank(-x)
+  rank2 <- rank(-y)
+  
+  # Identify mismatches
+  mismatch <- abs(rank1 - rank2)
+  
+  # Create labeled data frame
+  df <- tibble(
+    Model = looComp_data$model,
+    Method1_rank = rank1,
+    Method2_rank = rank2,
+    `rank mismatches` = factor(mismatch)
+  )
+  
+  ggplot(df, aes(x = Method1_rank, y = Method2_rank, label = Model)) +
+    geom_point(aes(color = `rank mismatches`), size = 3) +
+    geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
+    geom_text(nudge_y = nudges_y, nudge_x = nudges_x, size = 3) +
+    scale_color_manual(values = c(project_colors[1], project_colors[3], project_colors[2])) +
+    scale_x_continuous(breaks = 1:9) +
+    scale_y_continuous(breaks = 1:9) +
+    labs(
+      x = x_label,
+      y = y_label,
+    )  
+}
+
+# plot the rankings for ELPD vs. aggregate data from Exp2 (RelOnly)
 x <- looComp_data$ELPD
 y <- looComp_data$RelevanceJudgment_RelOnly
-cor(x, y, method = "spearman")
-cor(x, y, method = "kendall")
-# "The two methods produce highly similar model rankings (Spearman ρ = 0.93; Kendall τ = 0.83), 
-# suggesting near-equivalence in their ordinal preferences, with only minor disagreements."
-
-# Compute ranks (higher is better)
-rank1 <- rank(-x)
-rank2 <- rank(-y)
-
-# Identify mismatches
-mismatch <- abs(rank1 - rank2)
-
-# Create labeled data frame
-df <- tibble(
-  Model = looComp_data$model,
-  Method1_rank = rank1,
-  Method2_rank = rank2,
-  `rank mismatches` = factor(mismatch)
-)
-
-
+x_label <- "Rank (ELPD for Exp 1 data)"
+y_label <- "Rank (Corr for Exp 2 data)"
 nudges_y <- c(
-   0.5,  # probability change  
+  0.5,  # probability change  
   -0.5, # entropy change 
   -0.5, # KL utility
-   0.5,  # BF utility 
-  -0.2, # commitment change
+  0.5,  # BF utility 
+  -0.4, # commitment change
   -0.5,  # concentration change
-   0.5,  # entropy change (2nd-order)
-   0.5, # KL utility (2nd-order)
+  0.5,  # entropy change (2nd-order)
+  0.5, # KL utility (2nd-order)
   -0.5) # BF utility (2nd-order)
 nudges_x <- c(
-   0,  # probability change  
+  0,  # probability change  
   -0, # entropy change 
   -0, # KL utility
-   0,  # BF utility 
-  -0.5, # commitment change
-   0,  # concentration change
+  0,  # BF utility 
+  -0.2, # commitment change
+  0,  # concentration change
   -0.5,  # entropy change (2nd-order)
   -0.3, # KL utility (2nd-order)
-   0.3) # BF utility (2nd-order)
-ggplot(df, aes(x = Method1_rank, y = Method2_rank, label = Model)) +
-  geom_point(aes(color = `rank mismatches`), size = 3) +
-  geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
-  geom_text(nudge_y = nudges_y, nudge_x = nudges_x, size = 3) +
-  scale_color_manual(values = c(project_colors[1], project_colors[3], project_colors[2])) +
-  scale_x_continuous(breaks = 1:9) +
-  scale_y_continuous(breaks = 1:9) +
-  labs(
-    x = "Rank (ELPD for Exp 1 data)",
-    y = "Rank (Correlation for Exp 2 data)",
-  )
+  0.3) # BF utility (2nd-order)
+(rankings_plot_A1_A2 <- plot_rankings(x, y,x_label, y_label, nudges_x, nudges_y))
+
+# plot the rankings for aggr. data Exp 1 vs. aggregate data from Exp2 (RelOnly)
+x <- looComp_data$RelevanceJudgment_FullExp
+y <- looComp_data$RelevanceJudgment_RelOnly
+x_label <- "Rank (Corr for Exp 1 data)"
+y_label <- "Rank (Corr for Exp 2 data)"
+nudges_y <- c(
+  0.5,  # probability change  
+  -0.5, # entropy change 
+  -0.5, # KL utility
+  0.5,  # BF utility 
+  -0.2, # commitment change
+  -0.5,  # concentration change
+  0.5,  # entropy change (2nd-order)
+  0.5, # KL utility (2nd-order)
+  0.5) # BF utility (2nd-order)
+nudges_x <- c(
+  0,  # probability change  
+  -0, # entropy change 
+  -0, # KL utility
+  0,  # BF utility 
+  -0.5, # commitment change
+  0.5,  # concentration change
+  -0.5,  # entropy change (2nd-order)
+  0, # KL utility (2nd-order)
+  0) # BF utility (2nd-order)
+(rankings_plot_A2_A3 <- plot_rankings(x, y,x_label, y_label, nudges_x, nudges_y))
 
 
+# plot the rankings for aggr. data Exp 1 vs. aggregate data from Exp2 (RelOnly)
+x <- looComp_data$ELPD
+y <- looComp_data$RelevanceJudgment_FullExp
+x_label <- "Rank (ELPD for Exp 1 data)"
+y_label <- "Rank (Corr for Exp 1 data)"
+nudges_y <- c(
+  0.5,  # probability change  
+  -0.5, # entropy change 
+  0.5, # KL utility
+  0.5,  # BF utility 
+  0.4, # commitment change
+  -0.5,  # concentration change
+  0.5,  # entropy change (2nd-order)
+  0.5, # KL utility (2nd-order)
+  -0.5) # BF utility (2nd-order)
+nudges_x <- c(
+  0,  # probability change  
+  0.3, # entropy change 
+  -0, # KL utility
+  0,  # BF utility 
+  -0.5, # commitment change
+  0.3,  # concentration change
+  -0.5,  # entropy change (2nd-order)
+  -0.3, # KL utility (2nd-order)
+  0.3) # BF utility (2nd-order)
+(rankings_plot_A1_A3 <- plot_rankings(x, y,x_label, y_label, nudges_x, nudges_y))
 
+# a table with all correlations for all models
+tibble(comparison = c("ELPD Exp1 vs Corr Exp2",
+                      "Corr Exp1 vs Corr Exp2",
+                      "ELPD Exp1 vs Corr Exp1"),
+       Spearman = c(cor(looComp_data$ELPD, looComp_data$RelevanceJudgment_RelOnly, 
+                        method = "spearman") |> round(3),
+                    cor(looComp_data$RelevanceJudgment_FullExp, looComp_data$RelevanceJudgment_RelOnly, 
+                          method = "spearman") |> round(3),
+                    cor(looComp_data$ELPD, looComp_data$RelevanceJudgment_FullExp, 
+                        method = "spearman") |> round(3)),
+       Kendall = c(cor(looComp_data$ELPD, looComp_data$RelevanceJudgment_RelOnly, 
+                       method = "kendall") |> round(3),
+                    cor(looComp_data$RelevanceJudgment_FullExp, looComp_data$RelevanceJudgment_RelOnly, 
+                        method = "kendall") |> round(3),
+                    cor(looComp_data$ELPD, looComp_data$RelevanceJudgment_FullExp, 
+                        method = "kendall") |> round(3))
+       ) #   kableExtra::kable(format = "latex", booktabs = TRUE, digits = 3)
 
+# Suggested formulations: "The two methods produce highly similar model rankings 
+# (Spearman ρ = 0.93; Kendall τ = 0.83), suggesting near-equivalence in their 
+# ordinal preferences, with only minor disagreements."
 
 
 
