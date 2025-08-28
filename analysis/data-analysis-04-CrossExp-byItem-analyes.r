@@ -423,5 +423,9 @@ tibble(comparison = c("ELPD Exp1 vs Corr Exp2",
 # (Spearman ρ = 0.93; Kendall τ = 0.83), suggesting near-equivalence in their 
 # ordinal preferences, with only minor disagreements."
 
+# full table of model comparison metrics for all three approachs
 
+looComp_data |> 
+  select(-SE, -lower, -upper) |> 
+  kableExtra::kable(format = "latex", booktabs = TRUE, digits = 3)
 
