@@ -1273,8 +1273,52 @@ myvars["explHyp3PValue"] <- Lambert_test(loo_comp_explHyp3) |> round(3)
 
 
 It seems that the overall best model in this comparison is the one that uses Bayes-factor based measures consistently. 
-The second-order Bayes-factor based measure also seems to be the best to add to the other first-order measures.
-This also means that it is not the case the "being consisten" in choic of first- and second-order measure is always best.
+
+The second-order Bayes-factor predictor also seems to be the best to add to the other first-order measures.
+If so, this means that it is not the case the "being consistent" in choice of first- and second-order measure is always best.
+To explores this (post-hoc, based on a suggestion during the reviewing process), we first observe that for each first-order measure X in {ProbCh, ER, KL, BF}, the model `X + BF` with  `second-order Bayes factor utility` as the addition predictor is numerically better that any model `X +Y` for any other second-order predictor Y in {ER_beta, KL_beta, pure}.
+To test whether this observation is substantial, we compare, via LOO-CV, the model `X + BF` to the second-best model `X + Y` for each first-order measure X.
+
+
+```{r post-hoc-testing-impact-of-2nd-order-BF-measure}
+# ProbCh -> 2nd best model is `ProbCh + ER_beta`
+(loo_comp_posthoc_ProbCh <- loo_compare(
+  fit_loo_pure_BF, 
+  fit_loo_pure_ER
+))
+myvars["explHyp3PostHocProbChLooDiff"] <- -1 * (loo_comp_posthoc_ProbCh[2,1] |> round(3))
+myvars["explHyp3PostHocProbChLOOSE"]   <- loo_comp_posthoc_ProbCh[2,2] |> round(3)
+myvars["explHyp3PostHocProbChPValue"]  <- Lambert_test(loo_comp_posthoc_ProbCh) |> round(3)
+
+# ER -> 2nd best model is `ER + KL_beta`
+(loo_comp_posthoc_ER <- loo_compare(
+  fit_loo_ER_BF, 
+  fit_loo_ER_KL
+))
+myvars["explHyp3PostHocERLooDiff"] <- -1 * (loo_comp_posthoc_ER[2,1] |> round(3))
+myvars["explHyp3PostHocERLOOSE"]   <- loo_comp_posthoc_ER[2,2] |> round(3)
+myvars["explHyp3PostHocERPValue"]  <- Lambert_test(loo_comp_posthoc_ER) |> round(3)
+
+# KL -> 2nd best model is `KL + ER_beta`
+(loo_comp_posthoc_KL <- loo_compare(
+  fit_loo_KL_BF, 
+  fit_loo_KL_ER
+))
+myvars["explHyp3PostHocKLLooDiff"] <- -1 * (loo_comp_posthoc_KL[2,1] |> round(3))
+myvars["explHyp3PostHocKLLOOSE"]   <- loo_comp_posthoc_KL[2,2] |> round(3)
+myvars["explHyp3PostHocKLPValue"]  <- Lambert_test(loo_comp_posthoc_KL) |> round(3)
+
+# BF -> 2nd best model is `BF + KL_beta`
+(loo_comp_posthoc_BF <- loo_compare(
+  fit_loo_BF_BF, 
+  fit_loo_BF_KL
+))
+myvars["explHyp3PostHocBFLooDiff"] <- -1 * (loo_comp_posthoc_BF[2,1] |> round(3))
+myvars["explHyp3PostHocBFLOOSE"]   <- loo_comp_posthoc_BF[2,2] |> round(3)
+myvars["explHyp3PostHocBFPValue"]  <- Lambert_test(loo_comp_posthoc_BF) |> round(3)
+
+```
+
 
 # Saving variables for LaTeX
 
